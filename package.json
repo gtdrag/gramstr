@@ -1,5 +1,5 @@
 {
-  "name": "mckays-app-template",
+  "name": "instascrape-app",
   "version": "2.0.0",
   "private": true,
   "scripts": {
@@ -16,7 +16,11 @@
     "db:local": "npx supabase start",
     "db:generate": "npx drizzle-kit generate",
     "db:migrate": "npx drizzle-kit migrate",
+    "db:push": "npx drizzle-kit push",
     "db:seed": "npx bun db/seed",
+    "python:setup": "./scripts/setup-python.sh",
+    "python:start": "cd backend && ../venv/bin/python main.py",
+    "backend:dev": "concurrently \"npm run dev\" \"npm run python:start\"",
     "test": "npm run test:unit && npm run test:e2e",
     "test:unit": "jest",
     "test:e2e": "playwright test"
@@ -35,6 +39,7 @@
     "@radix-ui/react-tooltip": "^1.2.7",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "date-fns": "^3.6.0",
     "drizzle-orm": "^0.44.1",
     "framer-motion": "^12.15.0",
     "lucide-react": "^0.511.0",
@@ -57,6 +62,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "concurrently": "^9.1.0",
     "dotenv": "^16.5.0",
     "drizzle-kit": "^0.31.1",
     "eslint": "^9",

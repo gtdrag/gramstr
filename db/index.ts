@@ -2,6 +2,7 @@ import { config } from "dotenv"
 import { drizzle as drizzlePostgres } from "drizzle-orm/postgres-js"
 import postgres from "postgres"
 import { customers } from "./schema/customers"
+import { downloadedContent, crossPostHistory, userPlatformCredentials } from "./schema/content"
 
 config({ path: ".env.local" })
 
@@ -12,7 +13,10 @@ if (!databaseUrl) {
 
 const dbSchema = {
   // tables
-  customers
+  customers,
+  downloadedContent,
+  crossPostHistory,
+  userPlatformCredentials
   // relations
 }
 
