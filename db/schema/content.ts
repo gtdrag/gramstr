@@ -2,7 +2,7 @@ import { pgEnum, pgTable, text, timestamp, uuid, integer, boolean, jsonb } from 
 
 export const contentStatus = pgEnum("content_status", ["downloading", "completed", "failed", "processing"])
 export const contentType = pgEnum("content_type", ["image", "video", "carousel"])
-export const platformType = pgEnum("platform_type", ["instagram", "tiktok", "youtube", "twitter"])
+export const platformType = pgEnum("platform_type", ["instagram", "tiktok", "youtube", "twitter", "nostr"])
 
 export const downloadedContent = pgTable("downloaded_content", {
   id: uuid("id").defaultRandom().primaryKey(),

@@ -80,6 +80,32 @@ export function ContentList({ refreshTrigger }: ContentListProps) {
     }
   }
 
+  const handleNostrPost = async (contentId: string) => {
+    try {
+      const response = await fetch("/api/nostr/post", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contentId
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "NOSTR posting failed")
+      }
+
+      toast.success(`Posted to NOSTR! Note ID: ${data.noteId.substring(0, 16)}...`)
+      console.log("NOSTR Public Key:", data.nostrPublicKey)
+    } catch (error) {
+      console.error("NOSTR post error:", error)
+      toast.error(error instanceof Error ? error.message : "NOSTR posting failed")
+    }
+  }
+
   if (isLoading) {
     return <div className="text-center py-8">Loading content...</div>
   }
@@ -160,13 +186,23 @@ export function ContentList({ refreshTrigger }: ContentListProps) {
                     View Original
                   </Button>
                   {item.status === "completed" && (
-                    <Button
-                      size="sm"
-                      onClick={() => handleCrossPost(item.id)}
-                    >
-                      <Share2 className="h-4 w-4 mr-1" />
-                      Cross Post
-                    </Button>
+                    <>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleNostrPost(item.id)}
+                        className="bg-purple-50 border-purple-200 hover:bg-purple-100 text-purple-700"
+                      >
+                        ⚡ NOSTR
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => handleCrossPost(item.id)}
+                      >
+                        <Share2 className="h-4 w-4 mr-1" />
+                        Cross Post
+                      </Button>
+                    </>
                   )}
                 </div>
               </div>
