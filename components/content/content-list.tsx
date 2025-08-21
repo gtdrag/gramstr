@@ -119,13 +119,13 @@ export function ContentList({ refreshTrigger }: ContentListProps) {
   }
 
   return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-semibold">Downloaded Content</h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="space-y-6">
+      <h3 className="text-2xl font-semibold text-white">Downloaded Content</h3>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {content.map((item) => (
           <div
             key={item.id}
-            className="group bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 hover:border-gray-300"
+            className="group bg-gray-800 border border-gray-700 rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-200 hover:border-gray-600"
           >
             {/* Media Preview */}
             <div className="relative">
@@ -139,40 +139,40 @@ export function ContentList({ refreshTrigger }: ContentListProps) {
             </div>
             
             {/* Content Info */}
-            <div className="p-6">
+            <div className="p-4">
               {/* Post Content */}
               {item.caption && (
-                <p className="text-base text-gray-900 mb-4 leading-relaxed font-medium">
+                <p className="text-sm text-gray-100 mb-3 leading-relaxed font-medium line-clamp-2">
                   {item.caption}
                 </p>
               )}
               
               {/* Engagement Stats */}
-              <div className="flex items-center gap-6 mb-4 text-sm text-gray-600">
+              <div className="flex items-center gap-3 mb-3 text-xs text-gray-300">
                 {item.likes !== null && (
-                  <span className="flex items-center gap-2 font-medium">
-                    <Heart className="h-4 w-4 text-red-500" />
+                  <span className="flex items-center gap-1 font-medium">
+                    <Heart className="h-3 w-3 text-red-400" />
                     {item.likes.toLocaleString()}
                   </span>
                 )}
-                {item.views !== null && (
-                  <span className="flex items-center gap-2 font-medium">
-                    <Eye className="h-4 w-4 text-blue-500" />
+                {item.views !== null && item.views > 0 && (
+                  <span className="flex items-center gap-1 font-medium">
+                    <Eye className="h-3 w-3 text-blue-400" />
                     {item.views.toLocaleString()}
                   </span>
                 )}
-                <span className="flex items-center gap-2 font-medium">
-                  <Calendar className="h-4 w-4 text-gray-400" />
-                  {format(new Date(item.downloadedAt), "MMM d, yyyy")}
+                <span className="flex items-center gap-1 font-medium">
+                  <Calendar className="h-3 w-3 text-gray-400" />
+                  {format(new Date(item.downloadedAt), "MMM d")}
                 </span>
               </div>
               
               {/* Actions */}
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-2">
                 <Button
                   variant="ghost"
                   onClick={() => window.open(item.originalUrl, '_blank')}
-                  className="text-gray-500 hover:text-gray-700 p-0 h-auto"
+                  className="text-gray-400 hover:text-gray-200 p-0 h-auto text-xs justify-start"
                 >
                   View Original →
                 </Button>
@@ -180,7 +180,7 @@ export function ContentList({ refreshTrigger }: ContentListProps) {
                 {item.status === "completed" && (
                   <Button
                     onClick={() => handleNostrPost(item.id)}
-                    className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 font-semibold"
+                    className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white px-3 py-1.5 text-xs font-semibold shadow-lg w-full"
                   >
                     ⚡ Post to NOSTR
                   </Button>
