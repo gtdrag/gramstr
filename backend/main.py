@@ -1,13 +1,15 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, HttpUrl
-import instaloader
+import yt_dlp
 import os
 import tempfile
 from pathlib import Path
 import uuid
 from typing import Optional, List
 import json
+import subprocess
+import datetime
 
 app = FastAPI(title="InstaScrape API", version="1.0.0")
 
@@ -20,43 +22,32 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize instaloader with more permissive settings
-L = instaloader.Instaloader(
-    download_video_thumbnails=False,
-    download_geotags=False,
-    download_comments=False,
-    save_metadata=True,
-    compress_json=False,
-    request_timeout=60,
-    user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-)
+# yt-dlp configuration
+def get_ytdlp_options(output_dir: str):
+    """Get yt-dlp options for Instagram downloads"""
+    return {
+        'outtmpl': f'{output_dir}/%(title)s.%(ext)s',
+        'format': 'best/worst',  # Accept any available format
+        'writeinfojson': True,  # Save metadata
+        'writethumbnail': True,  # Save thumbnail
+        'ignoreerrors': False,  # Don't ignore errors for debugging
+        'no_warnings': False,
+        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+    }
 
-# Instagram login function
-def login_to_instagram():
-    """Login to Instagram if credentials are provided"""
-    import os
-    from dotenv import load_dotenv
-    
-    load_dotenv()
-    
-    username = os.getenv('INSTAGRAM_USERNAME')
-    password = os.getenv('INSTAGRAM_PASSWORD')
-    
-    if username and password:
+def load_instagram_cookies():
+    """Load Instagram cookies for yt-dlp if available"""
+    session_cookies_path = "session_cookies.json"
+    if os.path.exists(session_cookies_path):
         try:
-            print(f"Attempting to login to Instagram as {username}")
-            L.login(username, password)
-            print("Successfully logged in to Instagram")
-            return True
+            print("Found Instagram session cookies for yt-dlp")
+            return session_cookies_path
         except Exception as e:
-            print(f"Instagram login failed: {e}")
-            return False
-    else:
-        print("No Instagram credentials provided - using anonymous access")
-        return False
+            print(f"Could not load cookies: {e}")
+            return None
+    return None
 
-# Try to login on startup
-login_success = login_to_instagram()
+print("=== yt-dlp Instagram Downloader Ready ===")
 
 class DownloadRequest(BaseModel):
     url: str
@@ -78,62 +69,62 @@ async def root():
 
 @app.post("/download")
 async def download_content(request: DownloadRequest):
-    """Download Instagram content from URL"""
+    """Download Instagram content using yt-dlp"""
     try:
-        # Extract shortcode from URL
-        shortcode = extract_shortcode(request.url)
-        if not shortcode:
-            raise HTTPException(status_code=400, detail="Invalid Instagram URL")
+        print(f"Starting yt-dlp download for URL: {request.url}")
         
-        print(f"Attempting to download shortcode: {shortcode}")
+        # Validate Instagram URL
+        if not is_valid_instagram_url(request.url):
+            raise HTTPException(status_code=400, detail="Invalid Instagram URL")
         
         # Create user-specific download directory
         download_dir = Path(f"downloads/{request.user_id}")
         download_dir.mkdir(parents=True, exist_ok=True)
         
-        # Try different approaches to access Instagram content
-        post = None
+        # Configure yt-dlp options
+        ydl_opts = get_ytdlp_options(str(download_dir))
         
-        try:
-            # Method 1: Direct shortcode access
-            post = instaloader.Post.from_shortcode(L.context, shortcode)
-            print("Successfully accessed post metadata")
-        except Exception as e1:
-            print(f"Method 1 failed: {e1}")
-            
+        # Try to use cookies if available (currently disabled for JSON format)
+        # cookies_path = load_instagram_cookies()
+        # if cookies_path:
+        #     ydl_opts['cookiefile'] = cookies_path
+        print("Using yt-dlp without cookies for now")
+        
+        # Download with yt-dlp
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             try:
-                # Method 2: Try with session and different approach
-                L.context.request_timeout = 30
-                post = instaloader.Post.from_shortcode(L.context, shortcode)
-                print("Method 2 succeeded")
-            except Exception as e2:
-                print(f"Method 2 failed: {e2}")
-                raise HTTPException(
-                    status_code=403, 
-                    detail="Instagram blocked the request. This content may require authentication or be private."
+                # First, extract info without downloading
+                info = ydl.extract_info(request.url, download=False)
+                print(f"Successfully extracted info for: {info.get('title', 'Unknown')}")
+                
+                # Now download
+                ydl.download([request.url])
+                print("Download completed successfully")
+                
+                # Extract metadata from info
+                metadata = ContentMetadata(
+                    id=info.get('id', str(uuid.uuid4())),
+                    url=request.url,
+                    caption=info.get('description', '') or info.get('title', ''),
+                    date=datetime.datetime.now().isoformat(),  # yt-dlp doesn't always have upload date
+                    likes=info.get('like_count', 0) or 0,
+                    is_video=info.get('ext', '').lower() in ['mp4', 'webm', 'mkv'],
+                    file_path=f"downloads/{request.user_id}/{info.get('title', 'content')}",
+                    thumbnail_path=f"downloads/{request.user_id}/{info.get('title', 'content')}.jpg"
                 )
-        
-        # Download the post
-        L.download_post(post, target=str(download_dir))
-        print(f"Downloaded to: {download_dir}")
-        
-        # Extract metadata
-        metadata = ContentMetadata(
-            id=shortcode,
-            url=request.url,
-            caption=post.caption if post.caption else "",
-            date=post.date.isoformat(),
-            likes=post.likes,
-            is_video=post.is_video,
-            file_path=f"downloads/{request.user_id}/{post.shortcode}",
-            thumbnail_path=f"downloads/{request.user_id}/{post.shortcode}.jpg" if post.is_video else None
-        )
-        
-        return {
-            "success": True,
-            "metadata": metadata.dict(),
-            "message": "Content downloaded successfully"
-        }
+                
+                return {
+                    "success": True,
+                    "metadata": metadata.dict(),
+                    "message": "Content downloaded successfully with yt-dlp"
+                }
+                
+            except Exception as e:
+                print(f"yt-dlp download failed: {e}")
+                raise HTTPException(
+                    status_code=500, 
+                    detail=f"Download failed: {str(e)}"
+                )
         
     except HTTPException:
         raise
@@ -166,23 +157,19 @@ async def list_downloads(user_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to list downloads: {str(e)}")
 
-def extract_shortcode(url: str) -> Optional[str]:
-    """Extract Instagram shortcode from URL"""
+def is_valid_instagram_url(url: str) -> bool:
+    """Validate Instagram URL for yt-dlp"""
     import re
     
     patterns = [
-        r'instagram\.com/p/([A-Za-z0-9_-]+)',
-        r'instagram\.com/reel/([A-Za-z0-9_-]+)',
-        r'instagram\.com/reels/([A-Za-z0-9_-]+)',
-        r'instagram\.com/tv/([A-Za-z0-9_-]+)',
+        r'instagram\.com/p/[A-Za-z0-9_-]+',
+        r'instagram\.com/reel/[A-Za-z0-9_-]+',
+        r'instagram\.com/reels/[A-Za-z0-9_-]+',
+        r'instagram\.com/tv/[A-Za-z0-9_-]+',
+        r'instagram\.com/stories/[A-Za-z0-9_.-]+',
     ]
     
-    for pattern in patterns:
-        match = re.search(pattern, url)
-        if match:
-            return match.group(1)
-    
-    return None
+    return any(re.search(pattern, url) for pattern in patterns)
 
 if __name__ == "__main__":
     import uvicorn
