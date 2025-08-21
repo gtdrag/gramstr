@@ -36,14 +36,14 @@ export function MediaPreview({ filePath, thumbnailPath, isVideo, userId, caption
   if (isVideo) {
     return (
       <div 
-        className="relative aspect-video bg-black rounded-lg overflow-hidden group cursor-pointer"
+        className="relative bg-black rounded-lg overflow-hidden group cursor-pointer w-full max-w-md mx-auto"
         onMouseEnter={() => setShowControls(true)}
         onMouseLeave={() => setShowControls(false)}
       >
         <video
           src={mediaUrl}
           poster={thumbnailUrl || undefined}
-          className="w-full h-full object-cover"
+          className="w-full h-auto"
           muted={isMuted}
           loop
           playsInline
@@ -113,11 +113,11 @@ export function MediaPreview({ filePath, thumbnailPath, isVideo, userId, caption
     )
   } else {
     return (
-      <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden">
+      <div className="bg-gray-100 rounded-lg overflow-hidden w-full max-w-md mx-auto">
         <img
           src={mediaUrl}
           alt={caption}
-          className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
+          className="w-full h-auto hover:scale-105 transition-transform duration-200"
           onError={(e) => {
             // Fallback to thumbnail if main image fails
             if (thumbnailUrl && e.currentTarget.src !== thumbnailUrl) {
