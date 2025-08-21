@@ -1,5 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, HttpUrl
 import yt_dlp
 import os
@@ -101,21 +103,43 @@ async def download_content(request: DownloadRequest):
                 ydl.download([request.url])
                 print("Download completed successfully")
                 
+                # Find the actual downloaded files
+                content_title = info.get('title', 'content')
+                user_download_dir = Path(f"downloads/{request.user_id}")
+                
+                # Look for the actual downloaded files
+                video_file = None
+                image_file = None
+                thumbnail_file = None
+                
+                for file_path in user_download_dir.glob("*"):
+                    if file_path.is_file():
+                        if file_path.suffix.lower() in ['.mp4', '.webm', '.mkv']:
+                            video_file = str(file_path)
+                        elif file_path.suffix.lower() in ['.jpg', '.jpeg', '.png', '.webp'] and not file_path.name.endswith('.jpg'):
+                            image_file = str(file_path)
+                        elif file_path.name.endswith('.jpg'):
+                            thumbnail_file = str(file_path)
+                
+                # Determine if it's a video or image
+                is_video = video_file is not None
+                main_file = video_file if is_video else image_file
+                
                 # Extract metadata from info
                 metadata = ContentMetadata(
                     id=info.get('id', str(uuid.uuid4())),
                     url=request.url,
                     caption=info.get('description', '') or info.get('title', ''),
-                    date=datetime.datetime.now().isoformat(),  # yt-dlp doesn't always have upload date
+                    date=datetime.datetime.now().isoformat(),
                     likes=info.get('like_count', 0) or 0,
-                    is_video=info.get('ext', '').lower() in ['mp4', 'webm', 'mkv'],
-                    file_path=f"downloads/{request.user_id}/{info.get('title', 'content')}",
-                    thumbnail_path=f"downloads/{request.user_id}/{info.get('title', 'content')}.jpg"
+                    is_video=is_video,
+                    file_path=main_file or f"downloads/{request.user_id}/{content_title}",
+                    thumbnail_path=thumbnail_file
                 )
                 
                 return {
                     "success": True,
-                    "metadata": metadata.dict(),
+                    "metadata": metadata.model_dump(),
                     "message": "Content downloaded successfully with yt-dlp"
                 }
                 
@@ -156,6 +180,34 @@ async def list_downloads(user_id: str):
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to list downloads: {str(e)}")
+
+@app.get("/media/{user_id}/{filename}")
+async def serve_media(user_id: str, filename: str):
+    """Serve downloaded media files"""
+    try:
+        file_path = Path(f"downloads/{user_id}/{filename}")
+        
+        if not file_path.exists():
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        if not file_path.is_file():
+            raise HTTPException(status_code=404, detail="Not a file")
+        
+        # Security check - ensure file is within downloads directory
+        downloads_dir = Path("downloads").resolve()
+        if not file_path.resolve().is_relative_to(downloads_dir):
+            raise HTTPException(status_code=403, detail="Access denied")
+        
+        return FileResponse(
+            path=str(file_path),
+            filename=filename,
+            media_type="application/octet-stream"
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to serve file: {str(e)}")
 
 def is_valid_instagram_url(url: str) -> bool:
     """Validate Instagram URL for yt-dlp"""

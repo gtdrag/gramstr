@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { Share2, Calendar, Heart, Eye } from "lucide-react"
 import { format } from "date-fns"
+import { MediaPreview } from "./media-preview"
+import { useUser } from "@clerk/nextjs"
 
 interface ContentItem {
   id: string
@@ -16,6 +18,9 @@ interface ContentItem {
   likes: number | null
   views: number | null
   downloadedAt: string
+  filePath: string | null
+  thumbnailPath: string | null
+  isVideo: boolean
 }
 
 interface ContentListProps {
@@ -25,6 +30,7 @@ interface ContentListProps {
 export function ContentList({ refreshTrigger }: ContentListProps) {
   const [content, setContent] = useState<ContentItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const { user } = useUser()
 
   const fetchContent = async () => {
     try {
@@ -89,66 +95,80 @@ export function ContentList({ refreshTrigger }: ContentListProps) {
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Downloaded Content</h3>
-      <div className="grid gap-4">
+      <div className="grid gap-6">
         {content.map((item) => (
           <div
             key={item.id}
-            className="border rounded-lg p-4 space-y-3"
+            className="border rounded-lg overflow-hidden"
           >
-            <div className="flex items-start justify-between">
-              <div className="space-y-1 flex-1">
-                <div className="flex items-center gap-2">
-                  <Badge variant={item.contentType === "video" ? "default" : "secondary"}>
-                    {item.contentType}
-                  </Badge>
-                  <Badge variant={
-                    item.status === "completed" ? "default" :
-                    item.status === "failed" ? "destructive" : "secondary"
-                  }>
-                    {item.status}
-                  </Badge>
-                </div>
-                {item.caption && (
-                  <p className="text-sm text-muted-foreground line-clamp-2">
-                    {item.caption}
-                  </p>
-                )}
-                <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Calendar className="h-3 w-3" />
-                    {format(new Date(item.downloadedAt), "MMM d, yyyy")}
-                  </span>
-                  {item.likes !== null && (
-                    <span className="flex items-center gap-1">
-                      <Heart className="h-3 w-3" />
-                      {item.likes.toLocaleString()}
-                    </span>
+            {/* Media Preview */}
+            <div className="relative">
+              <MediaPreview
+                filePath={item.filePath}
+                thumbnailPath={item.thumbnailPath}
+                isVideo={item.isVideo}
+                userId={user?.id || ""}
+                caption={item.caption || ""}
+              />
+            </div>
+            
+            {/* Content Info */}
+            <div className="p-4 space-y-3">
+              <div className="flex items-start justify-between">
+                <div className="space-y-2 flex-1">
+                  <div className="flex items-center gap-2">
+                    <Badge variant={item.contentType === "video" ? "default" : "secondary"}>
+                      {item.contentType}
+                    </Badge>
+                    <Badge variant={
+                      item.status === "completed" ? "default" :
+                      item.status === "failed" ? "destructive" : "secondary"
+                    }>
+                      {item.status}
+                    </Badge>
+                  </div>
+                  {item.caption && (
+                    <p className="text-sm text-muted-foreground">
+                      {item.caption}
+                    </p>
                   )}
-                  {item.views !== null && (
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1">
-                      <Eye className="h-3 w-3" />
-                      {item.views.toLocaleString()}
+                      <Calendar className="h-3 w-3" />
+                      {format(new Date(item.downloadedAt), "MMM d, yyyy")}
                     </span>
-                  )}
+                    {item.likes !== null && (
+                      <span className="flex items-center gap-1">
+                        <Heart className="h-3 w-3" />
+                        {item.likes.toLocaleString()}
+                      </span>
+                    )}
+                    {item.views !== null && (
+                      <span className="flex items-center gap-1">
+                        <Eye className="h-3 w-3" />
+                        {item.views.toLocaleString()}
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => window.open(item.originalUrl, '_blank')}
-                >
-                  View Original
-                </Button>
-                {item.status === "completed" && (
+                <div className="flex gap-2">
                   <Button
                     size="sm"
-                    onClick={() => handleCrossPost(item.id)}
+                    variant="outline"
+                    onClick={() => window.open(item.originalUrl, '_blank')}
                   >
-                    <Share2 className="h-4 w-4 mr-1" />
-                    Cross Post
+                    View Original
                   </Button>
-                )}
+                  {item.status === "completed" && (
+                    <Button
+                      size="sm"
+                      onClick={() => handleCrossPost(item.id)}
+                    >
+                      <Share2 className="h-4 w-4 mr-1" />
+                      Cross Post
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
