@@ -25,9 +25,9 @@ export function MediaPreview({ filePath, thumbnailPath, isVideo, userId, caption
     )
   }
 
-  // Extract filename from path
-  const filename = filePath.split('/').pop() || ''
-  const thumbnailFilename = thumbnailPath?.split('/').pop() || ''
+  // filePath and thumbnailPath are now just filenames, not full paths
+  const filename = filePath || ''
+  const thumbnailFilename = thumbnailPath || ''
   
   // Build media URLs
   const mediaUrl = `http://localhost:8000/media/${userId}/${encodeURIComponent(filename)}`

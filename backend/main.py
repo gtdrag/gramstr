@@ -108,24 +108,60 @@ async def download_content(request: DownloadRequest):
                 user_download_dir = Path(f"downloads/{request.user_id}")
                 
                 # Look for the actual downloaded files
-                video_file = None
-                image_file = None
-                thumbnail_file = None
+                downloaded_files = []
                 
+                content_title = info.get('title', 'content')
+                print(f"Looking for files with title: {content_title}")
+                
+                # Collect all files first
                 for file_path in user_download_dir.glob("*"):
                     if file_path.is_file():
-                        if file_path.suffix.lower() in ['.mp4', '.webm', '.mkv']:
-                            video_file = str(file_path)
-                        elif file_path.suffix.lower() in ['.jpg', '.jpeg', '.png', '.webp'] and not file_path.name.endswith('.jpg'):
-                            image_file = str(file_path)
-                        elif file_path.name.endswith('.jpg'):
-                            thumbnail_file = str(file_path)
+                        filename = file_path.name
+                        print(f"Found file: {filename}")
+                        downloaded_files.append(file_path)
                 
-                # Determine if it's a video or image
+                # Find the most recent files (yt-dlp just downloaded them)
+                if downloaded_files:
+                    # Sort by modification time, newest first
+                    downloaded_files.sort(key=lambda x: x.stat().st_mtime, reverse=True)
+                    
+                    video_file = None
+                    image_file = None
+                    thumbnail_file = None
+                    
+                    # Process files to find the correct video/image and its thumbnail
+                    for file_path in downloaded_files:
+                        filename = file_path.name
+                        
+                        # Video files
+                        if file_path.suffix.lower() in ['.mp4', '.webm', '.mkv', '.avi', '.mov']:
+                            if video_file is None:  # Take the first (most recent) video
+                                video_file = str(file_path)
+                                print(f"Selected as VIDEO: {filename}")
+                                
+                                # Look for its corresponding thumbnail with similar name
+                                base_name = file_path.stem
+                                for thumb_candidate in downloaded_files:
+                                    if (thumb_candidate.suffix.lower() in ['.jpg', '.jpeg', '.png', '.webp'] and
+                                        base_name in thumb_candidate.stem):
+                                        thumbnail_file = str(thumb_candidate)
+                                        print(f"Found matching THUMBNAIL: {thumb_candidate.name}")
+                                        break
+                        
+                        # Image files (only if no video found)
+                        elif (video_file is None and 
+                              file_path.suffix.lower() in ['.jpg', '.jpeg', '.png', '.webp']):
+                            if image_file is None:
+                                image_file = str(file_path)
+                                print(f"Selected as IMAGE: {filename}")
+                
+                # Determine if it's a video or image based on what we found
                 is_video = video_file is not None
                 main_file = video_file if is_video else image_file
                 
-                # Extract metadata from info
+                print(f"Final decision: is_video={is_video}, main_file={main_file}, thumbnail={thumbnail_file}")
+                
+                # Extract metadata from info with proper file names
                 metadata = ContentMetadata(
                     id=info.get('id', str(uuid.uuid4())),
                     url=request.url,
@@ -133,8 +169,8 @@ async def download_content(request: DownloadRequest):
                     date=datetime.datetime.now().isoformat(),
                     likes=info.get('like_count', 0) or 0,
                     is_video=is_video,
-                    file_path=main_file or f"downloads/{request.user_id}/{content_title}",
-                    thumbnail_path=thumbnail_file
+                    file_path=Path(main_file).name if main_file else None,  # Store just filename for frontend
+                    thumbnail_path=Path(thumbnail_file).name if thumbnail_file else None  # Store just filename
                 )
                 
                 return {

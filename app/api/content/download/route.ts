@@ -53,6 +53,7 @@ export async function POST(request: NextRequest) {
       filePath: result.metadata.file_path,
       thumbnailPath: result.metadata.thumbnail_path,
       likes: result.metadata.likes,
+      isVideo: result.metadata.is_video, // ADD THIS MISSING FIELD!
       metadata: result.metadata,
     }).returning()
 
