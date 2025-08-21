@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
     await db.insert(crossPostHistory).values({
       contentId: contentItem.id,
       userId,
-      platform: "nostr" as any, // We'll need to add this to the enum
+      platform: "nostr" as const, // NOSTR platform type
       platformPostId: noteId,
       status: "completed",
       postedAt: new Date(),

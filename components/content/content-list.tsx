@@ -121,11 +121,11 @@ export function ContentList({ refreshTrigger }: ContentListProps) {
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Downloaded Content</h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {content.map((item) => (
           <div
             key={item.id}
-            className="border rounded-lg overflow-hidden"
+            className="group bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 hover:border-gray-300"
           >
             {/* Media Preview */}
             <div className="relative">
@@ -139,72 +139,52 @@ export function ContentList({ refreshTrigger }: ContentListProps) {
             </div>
             
             {/* Content Info */}
-            <div className="p-4 space-y-3">
-              <div className="flex items-start justify-between">
-                <div className="space-y-2 flex-1">
-                  <div className="flex items-center gap-2">
-                    <Badge variant={item.contentType === "video" ? "default" : "secondary"}>
-                      {item.contentType}
-                    </Badge>
-                    <Badge variant={
-                      item.status === "completed" ? "default" :
-                      item.status === "failed" ? "destructive" : "secondary"
-                    }>
-                      {item.status}
-                    </Badge>
-                  </div>
-                  {item.caption && (
-                    <p className="text-sm text-muted-foreground">
-                      {item.caption}
-                    </p>
-                  )}
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      {format(new Date(item.downloadedAt), "MMM d, yyyy")}
-                    </span>
-                    {item.likes !== null && (
-                      <span className="flex items-center gap-1">
-                        <Heart className="h-3 w-3" />
-                        {item.likes.toLocaleString()}
-                      </span>
-                    )}
-                    {item.views !== null && (
-                      <span className="flex items-center gap-1">
-                        <Eye className="h-3 w-3" />
-                        {item.views.toLocaleString()}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="flex gap-2">
+            <div className="p-6">
+              {/* Post Content */}
+              {item.caption && (
+                <p className="text-base text-gray-900 mb-4 leading-relaxed font-medium">
+                  {item.caption}
+                </p>
+              )}
+              
+              {/* Engagement Stats */}
+              <div className="flex items-center gap-6 mb-4 text-sm text-gray-600">
+                {item.likes !== null && (
+                  <span className="flex items-center gap-2 font-medium">
+                    <Heart className="h-4 w-4 text-red-500" />
+                    {item.likes.toLocaleString()}
+                  </span>
+                )}
+                {item.views !== null && (
+                  <span className="flex items-center gap-2 font-medium">
+                    <Eye className="h-4 w-4 text-blue-500" />
+                    {item.views.toLocaleString()}
+                  </span>
+                )}
+                <span className="flex items-center gap-2 font-medium">
+                  <Calendar className="h-4 w-4 text-gray-400" />
+                  {format(new Date(item.downloadedAt), "MMM d, yyyy")}
+                </span>
+              </div>
+              
+              {/* Actions */}
+              <div className="flex items-center justify-between">
+                <Button
+                  variant="ghost"
+                  onClick={() => window.open(item.originalUrl, '_blank')}
+                  className="text-gray-500 hover:text-gray-700 p-0 h-auto"
+                >
+                  View Original →
+                </Button>
+                
+                {item.status === "completed" && (
                   <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => window.open(item.originalUrl, '_blank')}
+                    onClick={() => handleNostrPost(item.id)}
+                    className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 font-semibold"
                   >
-                    View Original
+                    ⚡ Post to NOSTR
                   </Button>
-                  {item.status === "completed" && (
-                    <>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleNostrPost(item.id)}
-                        className="bg-purple-50 border-purple-200 hover:bg-purple-100 text-purple-700"
-                      >
-                        ⚡ NOSTR
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => handleCrossPost(item.id)}
-                      >
-                        <Share2 className="h-4 w-4 mr-1" />
-                        Cross Post
-                      </Button>
-                    </>
-                  )}
-                </div>
+                )}
               </div>
             </div>
           </div>

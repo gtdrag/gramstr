@@ -60,14 +60,12 @@ export function MediaPreview({ filePath, thumbnailPath, isVideo, userId, caption
         />
         
         {/* Video Controls Overlay */}
-        <div className={`absolute inset-0 flex items-center justify-center transition-opacity ${
+        <div className={`absolute inset-0 flex items-center justify-center transition-all duration-300 ${
           showControls || !isPlaying ? 'opacity-100' : 'opacity-0'
         }`}>
-          <div className="absolute inset-0 bg-black/20" />
-          <Button
-            variant="secondary"
-            size="icon"
-            className="relative z-10 bg-white/90 hover:bg-white"
+          <div className="absolute inset-0 bg-black/30" />
+          <div
+            className="relative z-10 bg-black/50 hover:bg-black/70 rounded-full p-4 cursor-pointer transition-all duration-200 hover:scale-110 shadow-lg"
             onClick={(e) => {
               e.stopPropagation()
               const video = e.currentTarget.closest('.group')?.querySelector('video')
@@ -80,8 +78,12 @@ export function MediaPreview({ filePath, thumbnailPath, isVideo, userId, caption
               }
             }}
           >
-            {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-          </Button>
+            {isPlaying ? (
+              <Pause className="h-8 w-8 text-white" />
+            ) : (
+              <Play className="h-8 w-8 text-white ml-1" />
+            )}
+          </div>
         </div>
 
         {/* Mute Button */}
