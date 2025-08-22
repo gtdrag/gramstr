@@ -17,8 +17,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "URL is required" }, { status: 400 })
     }
 
-    // Validate Instagram URL
-    const instagramUrlRegex = /^https?:\/\/(www\.)?instagram\.com\/(p|reel|reels|tv)\/[A-Za-z0-9_-]+/
+    // Validate Instagram URL (including Stories)
+    const instagramUrlRegex = /^https?:\/\/(www\.)?instagram\.com\/(p|reel|reels|tv|stories)\/[A-Za-z0-9_.-]+/
     if (!instagramUrlRegex.test(url)) {
       return NextResponse.json({ error: "Invalid Instagram URL" }, { status: 400 })
     }
