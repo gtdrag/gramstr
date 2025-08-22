@@ -4,10 +4,21 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
-import { Share2, Calendar, Heart, Eye } from "lucide-react"
+import { Share2, Calendar, Heart, Eye, Trash2 } from "lucide-react"
 import { format } from "date-fns"
 import { MediaPreview } from "./media-preview"
 import { useUser } from "@clerk/nextjs"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 interface ContentItem {
   id: string
@@ -30,6 +41,7 @@ interface ContentListProps {
 export function ContentList({ refreshTrigger }: ContentListProps) {
   const [content, setContent] = useState<ContentItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set())
   const { user } = useUser()
 
   const fetchContent = async () => {
@@ -106,6 +118,47 @@ export function ContentList({ refreshTrigger }: ContentListProps) {
     }
   }
 
+  const handleDelete = async (contentId: string) => {
+    setDeletingIds(prev => new Set(prev).add(contentId))
+    
+    try {
+      const response = await fetch("/api/content/delete", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contentId
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Delete failed")
+      }
+
+      toast.success("Content deleted successfully")
+      
+      // Remove from local state immediately
+      setContent(prev => prev.filter(item => item.id !== contentId))
+      
+      if (data.errors && data.errors.length > 0) {
+        toast.warning(`Note: ${data.errors.join(', ')}`)
+      }
+      
+    } catch (error) {
+      console.error("Delete error:", error)
+      toast.error(error instanceof Error ? error.message : "Delete failed")
+    } finally {
+      setDeletingIds(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(contentId)
+        return newSet
+      })
+    }
+  }
+
   if (isLoading) {
     return <div className="text-center py-8">Loading content...</div>
   }
@@ -136,6 +189,43 @@ export function ContentList({ refreshTrigger }: ContentListProps) {
                 userId={user?.id || ""}
                 caption={item.caption || ""}
               />
+              
+              {/* Delete Button - Top Right Corner */}
+              <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="h-8 w-8 p-0 bg-red-600/90 hover:bg-red-700 backdrop-blur-sm"
+                      disabled={deletingIds.has(item.id)}
+                    >
+                      {deletingIds.has(item.id) ? (
+                        <div className="animate-spin rounded-full h-3 w-3 border-b border-white" />
+                      ) : (
+                        <Trash2 className="h-3 w-3" />
+                      )}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Content</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete this content? This action cannot be undone and will permanently remove the files from your library.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => handleDelete(item.id)}
+                        className="bg-red-600 hover:bg-red-700 text-white"
+                      >
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
             </div>
             
             {/* Content Info */}
