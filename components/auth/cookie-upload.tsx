@@ -50,12 +50,15 @@ export function CookieUpload({ onUploadSuccess }: CookieUploadProps) {
     }
     
     setUploadedFile(file)
+    toast.info("📁 File selected! Click upload to process it.")
   }
 
   const uploadFile = async () => {
     if (!uploadedFile) return
 
     setIsUploading(true)
+    toast.info("🔄 Processing your cookie file...")
+    
     try {
       const formData = new FormData()
       formData.append('cookies', uploadedFile)
@@ -71,7 +74,7 @@ export function CookieUpload({ onUploadSuccess }: CookieUploadProps) {
         throw new Error(data.error || 'Upload failed')
       }
 
-      toast.success(data.message)
+      toast.success("🎉 " + data.message)
       setUploadedFile(null)
       onUploadSuccess()
       
