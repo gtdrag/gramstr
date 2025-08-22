@@ -13,6 +13,13 @@ export default function Page() {
   const [showAuthSetup, setShowAuthSetup] = useState(false)
   const [authStatus, setAuthStatus] = useState<{authenticated: boolean, sessionStatus?: string, warningMessage?: string} | null>(null)
   const router = useRouter()
+  
+  // Auto-show setup when session expires
+  useEffect(() => {
+    if (authStatus?.sessionStatus === "expired") {
+      setShowAuthSetup(true)
+    }
+  }, [authStatus?.sessionStatus])
 
   const checkAuthStatus = () => {
     fetch("/api/auth/instagram")
@@ -78,6 +85,22 @@ export default function Page() {
                     Enable Full Instagram Access
                   </>
                 )}
+              </Button>
+              
+              {showAuthSetup && <InstagramAuthSetup onAuthSuccess={checkAuthStatus} />}
+            </div>
+          )}
+          
+          {/* Fallback: Always show setup button if not authenticated */}
+          {authStatus && !authStatus.authenticated && authStatus.sessionStatus !== "expired" && (
+            <div className="mt-8">
+              <Button
+                onClick={() => setShowAuthSetup(true)}
+                variant="outline"
+                className="bg-yellow-600 border-yellow-500 text-white hover:bg-yellow-700"
+              >
+                <ChevronDown className="h-4 w-4 mr-1" />
+                Setup Instagram Authentication
               </Button>
               
               {showAuthSetup && <InstagramAuthSetup onAuthSuccess={checkAuthStatus} />}
