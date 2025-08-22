@@ -17,8 +17,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "URL is required" }, { status: 400 })
     }
 
-    // Validate Instagram URL
-    const instagramUrlRegex = /^https?:\/\/(www\.)?instagram\.com\/(p|reel|reels|tv)\/[A-Za-z0-9_-]+/
+    // Validate Instagram URL (including Stories)
+    const instagramUrlRegex = /^https?:\/\/(www\.)?instagram\.com\/(p|reel|reels|tv|stories)\/[A-Za-z0-9_.-]+/
     if (!instagramUrlRegex.test(url)) {
       return NextResponse.json({ error: "Invalid Instagram URL" }, { status: 400 })
     }
@@ -37,7 +37,11 @@ export async function POST(request: NextRequest) {
 
     if (!pythonResponse.ok) {
       const error = await pythonResponse.json()
-      return NextResponse.json({ error: error.detail || "Download failed" }, { status: 500 })
+      // Forward the original status code from Python backend (especially 401 for session expiration)
+      return NextResponse.json(
+        { error: error.detail || "Download failed" }, 
+        { status: pythonResponse.status }
+      )
     }
 
     const result = await pythonResponse.json()

@@ -1,15 +1,29 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { DownloadForm } from "@/components/content/download-form"
 import { ContentList } from "@/components/content/content-list"
+import { InstagramAuthSetup } from "@/components/auth/instagram-auth-setup"
 import { Button } from "@/components/ui/button"
-import { Grid3x3, Images } from "lucide-react"
+import { Grid3x3, Images, ChevronDown, ChevronUp } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 export default function Page() {
   const [refreshTrigger, setRefreshTrigger] = useState(0)
+  const [showAuthSetup, setShowAuthSetup] = useState(false)
+  const [authStatus, setAuthStatus] = useState<{authenticated: boolean, sessionStatus?: string, warningMessage?: string} | null>(null)
   const router = useRouter()
+
+  const checkAuthStatus = () => {
+    fetch("/api/auth/instagram")
+      .then(res => res.json())
+      .then(data => setAuthStatus(data))
+      .catch(err => console.error("Failed to check auth status:", err))
+  }
+
+  useEffect(() => {
+    checkAuthStatus()
+  }, [])
 
   const handleDownloadComplete = () => {
     setRefreshTrigger(prev => prev + 1)
@@ -44,6 +58,31 @@ export default function Page() {
         <div className="bg-gray-800 border border-gray-700 rounded-2xl p-12 shadow-2xl">
           <h2 className="text-3xl font-semibold mb-8 text-white text-center">Download Content</h2>
           <DownloadForm onDownloadComplete={handleDownloadComplete} />
+          
+          {/* Stories Setup Section */}
+          {authStatus && (!authStatus.authenticated || authStatus.sessionStatus === "expired") && (
+            <div className="mt-8">
+              <Button
+                onClick={() => setShowAuthSetup(!showAuthSetup)}
+                variant="ghost"
+                className="text-yellow-400 hover:text-yellow-300 text-sm mb-4"
+              >
+                {showAuthSetup ? (
+                  <>
+                    <ChevronUp className="h-4 w-4 mr-1" />
+                    Hide Authentication Setup
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="h-4 w-4 mr-1" />
+                    Enable Full Instagram Access
+                  </>
+                )}
+              </Button>
+              
+              {showAuthSetup && <InstagramAuthSetup onAuthSuccess={checkAuthStatus} />}
+            </div>
+          )}
           
           {/* Or link to gallery */}
           <div className="mt-8 text-center">
