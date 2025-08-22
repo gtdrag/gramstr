@@ -1,21 +1,43 @@
 import { NextResponse } from "next/server"
-import { existsSync } from "fs"
+import { existsSync, readFileSync } from "fs"
 import path from "path"
 
 export async function GET() {
   try {
-    // Check if Instagram cookies are available
-    const cookieFiles = [
-      path.join(process.cwd(), "backend", "session_cookies.json"),
-      path.join(process.cwd(), "backend", "instagram_cookies.txt")
-    ]
+    // Check for valid Instagram authentication
+    let hasValidAuth = false
     
-    const hasAuth = cookieFiles.some(file => existsSync(file))
+    // Check session_cookies.json
+    const sessionCookiesPath = path.join(process.cwd(), "backend", "session_cookies.json")
+    if (existsSync(sessionCookiesPath)) {
+      try {
+        const cookieData = JSON.parse(readFileSync(sessionCookiesPath, "utf-8"))
+        hasValidAuth = cookieData.some((cookie: any) => 
+          cookie.name === "sessionid" && cookie.value && cookie.value.length > 0
+        )
+      } catch (e) {
+        // Invalid JSON, continue checking other files
+      }
+    }
+    
+    // Check instagram_cookies.txt if JSON check failed
+    if (!hasValidAuth) {
+      const txtCookiesPath = path.join(process.cwd(), "backend", "instagram_cookies.txt")
+      if (existsSync(txtCookiesPath)) {
+        try {
+          const cookieContent = readFileSync(txtCookiesPath, "utf-8")
+          hasValidAuth = cookieContent.includes("sessionid") && 
+                        cookieContent.split("sessionid")[1]?.trim().length > 0
+        } catch (e) {
+          // File read error
+        }
+      }
+    }
     
     return NextResponse.json({
-      authenticated: hasAuth,
-      storiesSupported: hasAuth,
-      message: hasAuth 
+      authenticated: hasValidAuth,
+      storiesSupported: hasValidAuth,
+      message: hasValidAuth 
         ? "Instagram authentication available - Stories downloads enabled"
         : "No Instagram authentication found - Stories require login"
     })
