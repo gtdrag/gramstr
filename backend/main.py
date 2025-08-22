@@ -37,17 +37,75 @@ def get_ytdlp_options(output_dir: str):
         'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
     }
 
+def convert_json_to_netscape_cookies(json_path: str, netscape_path: str):
+    """Convert JSON cookies to Netscape format for yt-dlp"""
+    try:
+        import json
+        with open(json_path, 'r') as f:
+            cookies = json.load(f)
+        
+        with open(netscape_path, 'w') as f:
+            f.write('# Netscape HTTP Cookie File\n')
+            f.write('# This is a generated file! Do not edit.\n\n')
+            
+            for cookie in cookies:
+                domain = cookie.get('domain', '.instagram.com')
+                flag = 'TRUE' if domain.startswith('.') else 'FALSE'
+                path = cookie.get('path', '/')
+                secure = 'TRUE' if cookie.get('secure', False) else 'FALSE'
+                expiration = '0'  # Session cookie
+                name = cookie.get('name', '')
+                value = cookie.get('value', '')
+                
+                f.write(f"{domain}\t{flag}\t{path}\t{secure}\t{expiration}\t{name}\t{value}\n")
+        
+        print(f"Converted JSON cookies to Netscape format: {netscape_path}")
+        return True
+    except Exception as e:
+        print(f"Failed to convert cookies: {e}")
+        return False
+
 def load_instagram_cookies():
     """Load Instagram cookies for yt-dlp if available"""
-    session_cookies_path = "session_cookies.json"
+    # Check for Netscape format cookies first (preferred by yt-dlp)
+    netscape_cookies_path = "backend/instagram_cookies.txt"
+    if os.path.exists(netscape_cookies_path):
+        try:
+            print("Found Instagram cookies (Netscape format)")
+            return netscape_cookies_path
+        except Exception as e:
+            print(f"Could not load Netscape cookies: {e}")
+    
+    # Check for JSON cookies and convert them to Netscape format
+    session_cookies_path = "backend/session_cookies.json"
     if os.path.exists(session_cookies_path):
         try:
-            print("Found Instagram session cookies for yt-dlp")
-            return session_cookies_path
+            # Validate that we have the essential sessionid cookie
+            import json
+            with open(session_cookies_path, 'r') as f:
+                cookies = json.load(f)
+            
+            cookie_names = [cookie.get('name') for cookie in cookies]
+            if 'sessionid' in cookie_names:
+                print("Found Instagram session cookies (JSON format) with sessionid")
+            else:
+                print("Found Instagram cookies but missing sessionid - authentication may fail")
+            
+            # Convert to Netscape format
+            if convert_json_to_netscape_cookies(session_cookies_path, netscape_cookies_path):
+                return netscape_cookies_path
+            else:
+                return None
         except Exception as e:
-            print(f"Could not load cookies: {e}")
-            return None
+            print(f"Could not load JSON cookies: {e}")
+    
+    print("No Instagram cookies found - Stories download will require authentication")
     return None
+
+def is_stories_url(url: str) -> bool:
+    """Check if URL is an Instagram Stories URL"""
+    import re
+    return bool(re.search(r'instagram\.com/stories/[A-Za-z0-9_.-]+', url))
 
 print("=== yt-dlp Instagram Downloader Ready ===")
 
@@ -86,11 +144,21 @@ async def download_content(request: DownloadRequest):
         # Configure yt-dlp options
         ydl_opts = get_ytdlp_options(str(download_dir))
         
-        # Try to use cookies if available (currently disabled for JSON format)
-        # cookies_path = load_instagram_cookies()
-        # if cookies_path:
-        #     ydl_opts['cookiefile'] = cookies_path
-        print("Using yt-dlp without cookies for now")
+        # Check if this is a Stories URL and enable cookies if available
+        is_story = is_stories_url(request.url)
+        cookies_path = load_instagram_cookies()
+        
+        if is_story and not cookies_path:
+            raise HTTPException(
+                status_code=400, 
+                detail="Instagram Stories require authentication. Please run the cookie extraction script first."
+            )
+        
+        if cookies_path:
+            ydl_opts['cookiefile'] = cookies_path
+            print(f"Using Instagram cookies for {'Stories' if is_story else 'authenticated'} download")
+        else:
+            print("Using yt-dlp without cookies (public posts only)")
         
         # Download with yt-dlp
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
