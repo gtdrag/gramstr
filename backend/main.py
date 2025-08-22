@@ -248,10 +248,46 @@ async def download_content(request: DownloadRequest):
                 }
                 
             except Exception as e:
-                print(f"yt-dlp download failed: {e}")
+                error_str = str(e)
+                print(f"yt-dlp download failed: {error_str}")
+                
+                # Check for common session expiration errors
+                if any(phrase in error_str.lower() for phrase in [
+                    "you need to log in",
+                    "login required", 
+                    "authentication required",
+                    "session expired",
+                    "invalid session",
+                    "unauthorized access",
+                    "this content is unreachable",
+                    "use --cookies-from-browser",
+                    "cookies for the authentication",
+                    "content is not available",
+                    "login to access"
+                ]):
+                    # Mark session as invalid in status file
+                    try:
+                        import json
+                        status_file = "backend/session_status.json"
+                        status_data = {
+                            "last_validation": datetime.datetime.now().isoformat(),
+                            "is_valid": False,
+                            "last_error": "Session expired or authentication invalid"
+                        }
+                        with open(status_file, 'w') as f:
+                            json.dump(status_data, f)
+                        print("Marked session as invalid in status file")
+                    except Exception as status_error:
+                        print(f"Failed to update session status: {status_error}")
+                    
+                    raise HTTPException(
+                        status_code=401,
+                        detail="Session expired or authentication invalid. Please refresh your Instagram cookies."
+                    )
+                
                 raise HTTPException(
                     status_code=500, 
-                    detail=f"Download failed: {str(e)}"
+                    detail=f"Download failed: {error_str}"
                 )
         
     except HTTPException:
@@ -327,6 +363,81 @@ def is_valid_instagram_url(url: str) -> bool:
     
     return any(re.search(pattern, url) for pattern in patterns)
 
+def is_stories_url(url: str) -> bool:
+    """Check if URL is an Instagram Stories URL"""
+    return '/stories/' in url
+
+@app.post("/validate-session")
+async def validate_session(request: dict):
+    """Validate if the current session is still active by testing a lightweight request"""
+    try:
+        test_url = request.get("test_url", "https://www.instagram.com/instagram/")
+        
+        # Load cookies for the test
+        cookies_path = load_instagram_cookies()
+        
+        if not cookies_path:
+            raise HTTPException(
+                status_code=401,
+                detail="No authentication cookies found"
+            )
+        
+        # Configure minimal yt-dlp options for validation
+        ydl_opts = {
+            'quiet': True,
+            'no_warnings': True,
+            'extract_flat': True,  # Don't download, just extract basic info
+            'cookiefile': cookies_path,
+            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        }
+        
+        # Test the session with a minimal request
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            try:
+                # Just extract basic info without downloading
+                info = ydl.extract_info(test_url, download=False)
+                
+                # If we get here, the session is working
+                return {
+                    "valid": True,
+                    "message": "Session is active and working",
+                    "username": info.get('uploader', 'Unknown') if info else None
+                }
+                
+            except Exception as e:
+                error_str = str(e).lower()
+                print(f"Session validation failed: {e}")
+                
+                # Check for authentication-related errors
+                if any(phrase in error_str for phrase in [
+                    "you need to log in",
+                    "login required",
+                    "authentication required", 
+                    "session expired",
+                    "unauthorized",
+                    "forbidden"
+                ]):
+                    raise HTTPException(
+                        status_code=401,
+                        detail="Session expired or authentication invalid"
+                    )
+                else:
+                    # Other error - might be network or Instagram being down
+                    raise HTTPException(
+                        status_code=500,
+                        detail=f"Session validation error: {str(e)}"
+                    )
+                    
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Validation error: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Session validation failed: {str(e)}"
+        )
+
 if __name__ == "__main__":
+    print("=== yt-dlp Instagram Downloader Ready ===")
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

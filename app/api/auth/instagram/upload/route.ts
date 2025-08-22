@@ -60,6 +60,15 @@ export async function POST(request: NextRequest) {
     const cookiesPath = path.join(process.cwd(), "backend", "session_cookies.json")
     await writeFile(cookiesPath, content, 'utf-8')
 
+    // Reset session status to valid on successful upload
+    const sessionStatusPath = path.join(process.cwd(), "backend", "session_status.json")
+    const statusData = {
+      last_validation: new Date().toISOString(),
+      is_valid: true,
+      last_error: null
+    }
+    await writeFile(sessionStatusPath, JSON.stringify(statusData), 'utf-8')
+
     // Check if sessionid is present for Stories support
     const hasSessionId = cookieNames.includes('sessionid')
     

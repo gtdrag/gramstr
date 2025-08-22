@@ -16,6 +16,10 @@ interface AuthStatus {
   authenticated: boolean
   storiesSupported: boolean
   message: string
+  sessionAge?: number
+  sessionStatus?: "fresh" | "aging" | "old" | "expired" | "unknown"
+  warningMessage?: string
+  cookieUploadTime?: string
 }
 
 export function DownloadForm({ onDownloadComplete }: DownloadFormProps) {
@@ -33,8 +37,8 @@ export function DownloadForm({ onDownloadComplete }: DownloadFormProps) {
 
   useEffect(() => {
     checkAuthStatus()
-    // Poll for auth status changes every 10 seconds
-    const interval = setInterval(checkAuthStatus, 10000)
+    // Poll for auth status changes every 30 seconds (less frequent to avoid spam)
+    const interval = setInterval(checkAuthStatus, 30000)
     return () => clearInterval(interval)
   }, [])
 
@@ -70,7 +74,17 @@ export function DownloadForm({ onDownloadComplete }: DownloadFormProps) {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || "Download failed")
+        // Handle session expiration specifically
+        if (response.status === 401) {
+          toast.error("🔒 Session expired! Please refresh your Instagram cookies.", {
+            duration: 6000,
+          })
+          // Refresh auth status to show expired state
+          checkAuthStatus()
+        } else {
+          throw new Error(data.error || "Download failed")
+        }
+        return
       }
 
       toast.success("Content downloaded successfully! Redirecting to gallery...")
@@ -105,18 +119,59 @@ export function DownloadForm({ onDownloadComplete }: DownloadFormProps) {
         
         {/* Authentication Status */}
         {authStatus && (
-          <div className="flex items-center gap-2 text-sm">
-            {authStatus.authenticated ? (
-              <>
-                <ShieldCheck className="h-4 w-4 text-green-400" />
-                <span className="text-green-400">Full access enabled</span>
-              </>
-            ) : (
-              <>
-                <Shield className="h-4 w-4 text-yellow-400" />
-                <span className="text-yellow-400">Public content only</span>
-                <Info className="h-3 w-3 text-gray-400" />
-              </>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-sm">
+              {authStatus.authenticated ? (
+                <>
+                  <ShieldCheck className={`h-4 w-4 ${
+                    authStatus.sessionStatus === "fresh" ? "text-green-400" :
+                    authStatus.sessionStatus === "aging" ? "text-yellow-400" :
+                    authStatus.sessionStatus === "old" ? "text-orange-400" :
+                    authStatus.sessionStatus === "expired" ? "text-red-400" : "text-green-400"
+                  }`} />
+                  <span className={`${
+                    authStatus.sessionStatus === "fresh" ? "text-green-400" :
+                    authStatus.sessionStatus === "aging" ? "text-yellow-400" :
+                    authStatus.sessionStatus === "old" ? "text-orange-400" :
+                    authStatus.sessionStatus === "expired" ? "text-red-400" : "text-green-400"
+                  }`}>
+                    Full access enabled
+                    {authStatus.sessionAge !== null && authStatus.sessionAge !== undefined && (
+                      <span className="text-gray-400 ml-1">
+                        ({authStatus.sessionAge} day{authStatus.sessionAge !== 1 ? 's' : ''} old)
+                      </span>
+                    )}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Shield className="h-4 w-4 text-yellow-400" />
+                  <span className="text-yellow-400">Public content only</span>
+                  <Info className="h-3 w-3 text-gray-400" />
+                </>
+              )}
+            </div>
+            
+            {/* Session Warning */}
+            {authStatus.warningMessage && (
+              <div className={`flex items-center gap-2 text-xs p-2 rounded-md ${
+                authStatus.sessionStatus === "aging" ? "bg-yellow-500/10 border border-yellow-500/20" :
+                authStatus.sessionStatus === "old" ? "bg-orange-500/10 border border-orange-500/20" :
+                authStatus.sessionStatus === "expired" ? "bg-red-500/10 border border-red-500/20" : ""
+              }`}>
+                <Info className={`h-3 w-3 ${
+                  authStatus.sessionStatus === "aging" ? "text-yellow-400" :
+                  authStatus.sessionStatus === "old" ? "text-orange-400" :
+                  authStatus.sessionStatus === "expired" ? "text-red-400" : "text-yellow-400"
+                }`} />
+                <span className={`${
+                  authStatus.sessionStatus === "aging" ? "text-yellow-300" :
+                  authStatus.sessionStatus === "old" ? "text-orange-300" :
+                  authStatus.sessionStatus === "expired" ? "text-red-300" : "text-yellow-300"
+                }`}>
+                  {authStatus.warningMessage}
+                </span>
+              </div>
             )}
           </div>
         )}

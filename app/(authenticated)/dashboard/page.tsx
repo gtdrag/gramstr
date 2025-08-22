@@ -11,7 +11,7 @@ import { useRouter } from "next/navigation"
 export default function Page() {
   const [refreshTrigger, setRefreshTrigger] = useState(0)
   const [showAuthSetup, setShowAuthSetup] = useState(false)
-  const [authStatus, setAuthStatus] = useState<{authenticated: boolean} | null>(null)
+  const [authStatus, setAuthStatus] = useState<{authenticated: boolean, sessionStatus?: string, warningMessage?: string} | null>(null)
   const router = useRouter()
 
   const checkAuthStatus = () => {
@@ -60,7 +60,7 @@ export default function Page() {
           <DownloadForm onDownloadComplete={handleDownloadComplete} />
           
           {/* Stories Setup Section */}
-          {authStatus && !authStatus.authenticated && (
+          {authStatus && (!authStatus.authenticated || authStatus.sessionStatus === "expired") && (
             <div className="mt-8">
               <Button
                 onClick={() => setShowAuthSetup(!showAuthSetup)}

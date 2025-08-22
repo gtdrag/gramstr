@@ -37,7 +37,11 @@ export async function POST(request: NextRequest) {
 
     if (!pythonResponse.ok) {
       const error = await pythonResponse.json()
-      return NextResponse.json({ error: error.detail || "Download failed" }, { status: 500 })
+      // Forward the original status code from Python backend (especially 401 for session expiration)
+      return NextResponse.json(
+        { error: error.detail || "Download failed" }, 
+        { status: pythonResponse.status }
+      )
     }
 
     const result = await pythonResponse.json()
