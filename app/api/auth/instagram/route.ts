@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { existsSync, readFileSync } from "fs"
+import { existsSync, readFileSync, statSync } from "fs"
 import path from "path"
 
 export async function GET() {
@@ -15,13 +15,13 @@ export async function GET() {
     if (existsSync(sessionCookiesPath)) {
       try {
         const cookieData = JSON.parse(readFileSync(sessionCookiesPath, "utf-8"))
-        const sessionCookie = cookieData.find((cookie: any) => cookie.name === "sessionid")
+        const sessionCookie = cookieData.find((cookie: { name: string; value: string }) => cookie.name === "sessionid")
         
         if (sessionCookie && sessionCookie.value && sessionCookie.value.length > 0) {
           hasValidAuth = true
           
           // Get file modification time as proxy for upload time
-          const stats = require('fs').statSync(sessionCookiesPath)
+          const stats = statSync(sessionCookiesPath)
           cookieUploadTime = stats.mtime
           sessionAge = Math.floor((Date.now() - stats.mtime.getTime()) / (1000 * 60 * 60 * 24)) // days
         }
@@ -41,7 +41,7 @@ export async function GET() {
             hasValidAuth = true
             
             // Get file modification time
-            const stats = require('fs').statSync(txtCookiesPath)
+            const stats = statSync(txtCookiesPath)
             cookieUploadTime = stats.mtime
             sessionAge = Math.floor((Date.now() - stats.mtime.getTime()) / (1000 * 60 * 60 * 24)) // days
           }

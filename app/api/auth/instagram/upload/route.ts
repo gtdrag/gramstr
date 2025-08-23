@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check for required Instagram cookies
-    const cookieNames = cookies.map((cookie: any) => cookie.name).filter(Boolean)
+    const cookieNames = cookies.map((cookie: { name?: string }) => cookie.name).filter(Boolean)
     const requiredCookies = ['csrftoken', 'ds_user_id']
     const hasRequired = requiredCookies.some(req => cookieNames.includes(req))
     
