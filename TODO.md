@@ -1,4 +1,4 @@
-# InstaScrape Cross-Platform Posting - TODO Plan
+# Dumpstr Cross-Platform Posting - TODO Plan
 
 ## Overview
 Implement cross-platform posting functionality allowing users to share downloaded Instagram content to multiple platforms: NOSTR, X (Twitter), YouTube, TikTok, and more.

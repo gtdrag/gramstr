@@ -1,4 +1,4 @@
-# InstaScrape - Instagram Content Management Tool
+# Dumpstr - Instagram Content Management Tool
 
 A full-stack application for downloading Instagram content and managing cross-platform distribution. Built as a proof of concept for content management workflows.
 
@@ -53,7 +53,7 @@ A full-stack application for downloading Instagram content and managing cross-pl
 
 ```bash
 git clone <repository-url>
-cd instascrape
+cd dumpstr
 npm install
 ```
 

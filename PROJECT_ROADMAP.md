@@ -1,7 +1,7 @@
-# InstaScrape Project Roadmap
+# Dumpstr Project Roadmap
 
 ## Vision
-Transform InstaScrape into a comprehensive social media content management platform with cross-platform posting capabilities.
+Transform Dumpstr into a comprehensive social media content management platform with cross-platform posting capabilities.
 
 ---
 

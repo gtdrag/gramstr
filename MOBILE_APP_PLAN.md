@@ -1,8 +1,8 @@
-# InstaScrape Mobile App Development Plan
+# Dumpstr Mobile App Development Plan
 
 ## 🎯 **Project Overview**
 
-Transform the existing Next.js InstaScrape web application into a powerful React Native mobile app that enables users to download Instagram content and cross-post to NOSTR directly from their mobile devices.
+Transform the existing Next.js Dumpstr web application into a powerful React Native mobile app that enables users to download Instagram content and cross-post to NOSTR directly from their mobile devices.
 
 ## 📱 **Core Value Proposition**
 
@@ -371,4 +371,4 @@ const typography = {
 
 ---
 
-This comprehensive plan provides a solid foundation for building a powerful mobile companion to your web-based InstaScrape tool. The phased approach ensures steady progress while maintaining quality and user experience standards.
+This comprehensive plan provides a solid foundation for building a powerful mobile companion to your web-based Dumpstr tool. The phased approach ensures steady progress while maintaining quality and user experience standards.

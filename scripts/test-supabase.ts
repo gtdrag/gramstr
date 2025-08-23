@@ -45,12 +45,12 @@ async function testConnection() {
     console.log('📁 Available buckets:', buckets?.map(b => b.name).join(', ') || 'none')
     
     // Check if our bucket exists
-    const bucketExists = buckets?.some(bucket => bucket.name === 'instascrape-media')
-    console.log('🎯 instascrape-media bucket:', bucketExists ? '✅ Exists' : '❌ Not found')
+    const bucketExists = buckets?.some(bucket => bucket.name === 'dumpstr-media')
+    console.log('🎯 dumpstr-media bucket:', bucketExists ? '✅ Exists' : '❌ Not found')
     
     if (!bucketExists) {
       console.log('')
-      console.log('📋 To fix: Create "instascrape-media" bucket in Supabase dashboard')
+      console.log('📋 To fix: Create "dumpstr-media" bucket in Supabase dashboard')
       console.log('Settings: Public=true, Allow video/* and image/* files')
     } else {
       console.log('')
@@ -61,7 +61,7 @@ async function testConnection() {
       const testFile = new File(['test content'], 'test.txt', { type: 'text/plain' })
       
       const { data, error } = await supabase.storage
-        .from('instascrape-media')
+        .from('dumpstr-media')
         .upload(`test/${Date.now()}-test.txt`, testFile)
       
       if (error) {
@@ -75,7 +75,7 @@ async function testConnection() {
         console.log('✅ Upload test successful!')
         
         // Clean up test file
-        await supabase.storage.from('instascrape-media').remove([data.path])
+        await supabase.storage.from('dumpstr-media').remove([data.path])
         console.log('🧹 Test file cleaned up')
       }
     }

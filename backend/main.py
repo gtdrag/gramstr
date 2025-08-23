@@ -23,7 +23,7 @@ DOWNLOADS_DIR.mkdir(exist_ok=True)  # Ensure it exists
 print(f"🔧 Project root: {PROJECT_ROOT}")
 print(f"📁 Downloads directory: {DOWNLOADS_DIR}")
 
-app = FastAPI(title="InstaScrape API", version="1.0.0")
+app = FastAPI(title="Dumpstr API", version="1.0.0")
 
 # Configure CORS for Next.js frontend
 app.add_middleware(
@@ -134,7 +134,7 @@ class ContentMetadata(BaseModel):
 
 @app.get("/")
 async def root():
-    return {"message": "InstaScrape API is running"}
+    return {"message": "Dumpstr API is running"}
 
 @app.post("/download")
 async def download_content(request: DownloadRequest):

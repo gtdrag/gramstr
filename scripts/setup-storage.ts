@@ -20,11 +20,11 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey, {
 
 async function setupStorage() {
   try {
-    console.log('🗄️  Setting up Supabase Storage for InstaScrape...')
+    console.log('🗄️  Setting up Supabase Storage for Dumpstr...')
     
     // Create the bucket
-    console.log('📁 Creating instascrape-media bucket...')
-    const { data: bucket, error: bucketError } = await supabase.storage.createBucket('instascrape-media', {
+    console.log('📁 Creating dumpstr-media bucket...')
+    const { data: bucket, error: bucketError } = await supabase.storage.createBucket('dumpstr-media', {
       public: true,
       allowedMimeTypes: ['video/*', 'image/*'],
       fileSizeLimit: 50 * 1024 * 1024 // 50MB limit
@@ -37,7 +37,7 @@ async function setupStorage() {
     if (bucketError?.message.includes('already exists')) {
       console.log('✅ Bucket already exists')
     } else {
-      console.log('✅ Created instascrape-media bucket')
+      console.log('✅ Created dumpstr-media bucket')
     }
     
     // Set up RLS policies for public read access
@@ -45,7 +45,7 @@ async function setupStorage() {
     
     // Policy to allow public read access
     const { error: policyError } = await supabase.rpc('create_storage_policy', {
-      bucket_name: 'instascrape-media',
+      bucket_name: 'dumpstr-media',
       policy_name: 'Public read access',
       definition: 'true'
     })

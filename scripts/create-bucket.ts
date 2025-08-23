@@ -2,7 +2,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 
-console.log('🗄️  Creating Supabase Storage bucket for InstaScrape...')
+console.log('🗄️  Creating Supabase Storage bucket for Dumpstr...')
 console.log('')
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -28,7 +28,7 @@ async function createBucket() {
       console.log('📋 Manual Setup Required:')
       console.log('1. Go to your Supabase dashboard: https://supabase.com/dashboard')
       console.log('2. Navigate to Storage')
-      console.log('3. Create a new bucket named "instascrape-media"')
+      console.log('3. Create a new bucket named "dumpstr-media"')
       console.log('4. Set it as public')
       console.log('5. Allow video/* and image/* file types')
       console.log('')
@@ -37,15 +37,15 @@ async function createBucket() {
     
     console.log('📁 Found buckets:', buckets?.map(b => b.name).join(', ') || 'none')
     
-    const bucketExists = buckets?.some(bucket => bucket.name === 'instascrape-media')
+    const bucketExists = buckets?.some(bucket => bucket.name === 'dumpstr-media')
     
     if (bucketExists) {
-      console.log('✅ instascrape-media bucket already exists!')
+      console.log('✅ dumpstr-media bucket already exists!')
     } else {
-      console.log('📁 Creating instascrape-media bucket...')
+      console.log('📁 Creating dumpstr-media bucket...')
       
       // Try to create bucket (this might fail with anon key)
-      const { error: bucketError } = await supabase.storage.createBucket('instascrape-media', {
+      const { error: bucketError } = await supabase.storage.createBucket('dumpstr-media', {
         public: true,
         allowedMimeTypes: ['video/*', 'image/*'],
         fileSizeLimit: 50 * 1024 * 1024 // 50MB
@@ -57,7 +57,7 @@ async function createBucket() {
         console.log('📋 Manual Setup Required:')
         console.log('1. Go to your Supabase dashboard: https://supabase.com/dashboard')
         console.log('2. Navigate to Storage')
-        console.log('3. Create a new bucket named "instascrape-media"')
+        console.log('3. Create a new bucket named "dumpstr-media"')
         console.log('4. Set it as public')
         console.log('5. Allow video/* and image/* file types')
         console.log('6. Set file size limit to 50MB')
@@ -66,7 +66,7 @@ async function createBucket() {
         return
       }
       
-      console.log('✅ Created instascrape-media bucket!')
+      console.log('✅ Created dumpstr-media bucket!')
     }
     
     console.log('')

@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     await nostrService.connect()
 
     // Handle carousel posts with multiple files
-    let noteContent = contentItem.caption || 'Shared from InstaScrape'
+    let noteContent = contentItem.caption || 'Shared from Dumpstr'
     
     if (contentItem.isCarousel && contentItem.carouselFiles) {
       // Upload all carousel files to get public URLs
@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
       const noteId = await nostrService.publishInstagramVideo(
         publicUrl,
         contentItem.filePath || 'media.mp4',
-        contentItem.caption || 'Shared from InstaScrape',
+        contentItem.caption || 'Shared from Dumpstr',
         contentItem.originalUrl
       )
 

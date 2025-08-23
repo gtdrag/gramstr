@@ -2,7 +2,7 @@
 
 # Setup script for Python backend
 
-echo "Setting up Python environment for InstaScrape..."
+echo "Setting up Python environment for Dumpstr..."
 
 # Check if Python is installed
 if ! command -v python3 &> /dev/null; then

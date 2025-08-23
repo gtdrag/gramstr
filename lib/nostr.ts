@@ -79,9 +79,9 @@ export class NostrService {
       const fileName = `nostr/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
       
       // Upload to Supabase Storage (bucket should exist already)
-      console.log('⬆️  Uploading file to instascrape-media bucket...')
+      console.log('⬆️  Uploading file to dumpstr-media bucket...')
       const { data, error } = await supabase.storage
-        .from('instascrape-media')
+        .from('dumpstr-media')
         .upload(fileName, file, {
           cacheControl: '3600',
           upsert: false
@@ -92,7 +92,7 @@ export class NostrService {
         
         // If bucket doesn't exist, provide helpful error message
         if (error.message.includes('bucket') || error.message.includes('not found')) {
-          throw new Error(`Storage bucket 'instascrape-media' not found. Please create it in your Supabase dashboard under Storage.`)
+          throw new Error(`Storage bucket 'dumpstr-media' not found. Please create it in your Supabase dashboard under Storage.`)
         }
         
         throw new Error(`Supabase upload failed: ${error.message}`)
@@ -100,7 +100,7 @@ export class NostrService {
       
       // Get public URL
       const { data: publicData } = supabase.storage
-        .from('instascrape-media')
+        .from('dumpstr-media')
         .getPublicUrl(fileName)
       
       console.log('✅ File uploaded to Supabase:', publicData.publicUrl)
@@ -189,7 +189,7 @@ export class NostrService {
       const publicVideoUrl = await this.uploadVideoFromUrl(videoUrl, filename)
       
       // Create note content with the actual video
-      const noteContent = `📹 ${caption}\n\n🔗 Original: ${originalUrl}\n\n#InstaScrape #Instagram #VideoShare\n\nPosted via InstaScrape 🤖`
+      const noteContent = `📹 ${caption}\n\n🔗 Original: ${originalUrl}\n\n#Dumpstr #Instagram #VideoShare\n\nPosted via Dumpstr 🤖`
       
       // Publish the note WITH the publicly accessible video URL
       const noteId = await this.publishNote(noteContent, publicVideoUrl)
