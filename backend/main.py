@@ -15,6 +15,14 @@ import shutil
 import datetime
 import time
 
+# ABSOLUTE PATH CONFIGURATION - FIXES ALL PATH ISSUES
+PROJECT_ROOT = Path(__file__).parent.parent.absolute()  # Goes up from backend/ to project root
+DOWNLOADS_DIR = PROJECT_ROOT / "downloads"  # Always use absolute path to downloads
+DOWNLOADS_DIR.mkdir(exist_ok=True)  # Ensure it exists
+
+print(f"🔧 Project root: {PROJECT_ROOT}")
+print(f"📁 Downloads directory: {DOWNLOADS_DIR}")
+
 app = FastAPI(title="InstaScrape API", version="1.0.0")
 
 # Configure CORS for Next.js frontend
@@ -139,7 +147,7 @@ async def download_content(request: DownloadRequest):
             raise HTTPException(status_code=400, detail="Invalid Instagram URL")
         
         # Create user-specific download directory
-        download_dir = Path(f"downloads/{request.user_id}")
+        download_dir = DOWNLOADS_DIR / request.user_id
         download_dir.mkdir(parents=True, exist_ok=True)
         
         # Configure yt-dlp options
@@ -204,7 +212,7 @@ async def download_content(request: DownloadRequest):
                 
                 # Find the actual downloaded files
                 content_title = info.get('title', 'content') if info else 'content'
-                user_download_dir = Path(f"downloads/{request.user_id}")
+                user_download_dir = DOWNLOADS_DIR / request.user_id
                 
                 # Look for the actual downloaded files
                 downloaded_files = []
@@ -467,7 +475,7 @@ async def download_carousel_content(request: DownloadRequest):
             raise HTTPException(status_code=400, detail="Invalid Instagram URL")
         
         # Create user-specific download directory
-        download_dir = Path(f"downloads/{request.user_id}")
+        download_dir = DOWNLOADS_DIR / request.user_id
         download_dir.mkdir(parents=True, exist_ok=True)
         
         # Check for cookies
@@ -550,7 +558,7 @@ async def download_carousel_content(request: DownloadRequest):
 async def list_downloads(user_id: str):
     """List all downloaded content for a user"""
     try:
-        download_dir = Path(f"downloads/{user_id}")
+        download_dir = DOWNLOADS_DIR / user_id
         if not download_dir.exists():
             return {"downloads": []}
         
@@ -573,7 +581,8 @@ async def list_downloads(user_id: str):
 async def serve_media(user_id: str, filename: str):
     """Serve downloaded media files"""
     try:
-        file_path = Path(f"downloads/{user_id}/{filename}")
+        # Use absolute path from DOWNLOADS_DIR
+        file_path = DOWNLOADS_DIR / user_id / filename
         
         if not file_path.exists():
             raise HTTPException(status_code=404, detail="File not found")
@@ -582,7 +591,7 @@ async def serve_media(user_id: str, filename: str):
             raise HTTPException(status_code=404, detail="Not a file")
         
         # Security check - ensure file is within downloads directory
-        downloads_dir = Path("downloads").resolve()
+        downloads_dir = DOWNLOADS_DIR.resolve()
         if not file_path.resolve().is_relative_to(downloads_dir):
             raise HTTPException(status_code=403, detail="Access denied")
         

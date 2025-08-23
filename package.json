@@ -20,6 +20,8 @@
     "db:seed": "npx bun db/seed",
     "python:setup": "./scripts/setup-python.sh",
     "python:start": "cd backend && ../venv/bin/python main.py",
+    "kill:ports": "lsof -ti:3000 | xargs kill 2>/dev/null; lsof -ti:8000 | xargs kill 2>/dev/null; exit 0",
+    "start:all": "npm run kill:ports && concurrently \"npm run dev\" \"npm run python:start\"",
     "backend:dev": "concurrently \"npm run dev\" \"npm run python:start\"",
     "test": "npm run test:unit && npm run test:e2e",
     "test:unit": "jest",

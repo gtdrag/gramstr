@@ -57,39 +57,101 @@ export async function POST(request: NextRequest) {
     // Connect to NOSTR network
     await nostrService.connect()
 
-    // Build video URL for our backend
-    const videoUrl = `http://localhost:8000/media/${userId}/${encodeURIComponent(contentItem.filePath || '')}`
+    // Handle carousel posts with multiple files
+    let noteContent = contentItem.caption || 'Shared from InstaScrape'
     
-    // TODO: For production, replace localhost with a publicly accessible domain
-    // For now, we'll use localhost but this needs to be publicly accessible for NOSTR users
-    
-    // Publish to NOSTR
-    const noteId = await nostrService.publishInstagramVideo(
-      videoUrl,
-      contentItem.filePath || 'video.mp4',
-      contentItem.caption || 'Shared from InstaScrape',
-      contentItem.originalUrl
-    )
+    if (contentItem.isCarousel && contentItem.carouselFiles) {
+      // Upload all carousel files to get public URLs
+      console.log('Uploading carousel files to public storage...')
+      const publicUrls: string[] = []
+      
+      for (const file of contentItem.carouselFiles as string[]) {
+        try {
+          const localUrl = `http://localhost:8000/media/${userId}/${encodeURIComponent(file)}`
+          const publicUrl = await nostrService.uploadVideoFromUrl(localUrl, file)
+          publicUrls.push(publicUrl)
+          console.log(`Uploaded ${file} to ${publicUrl}`)
+        } catch (error) {
+          console.error(`Failed to upload ${file}:`, error)
+          // Continue with other files even if one fails
+        }
+      }
+      
+      // Add all public URLs to the note
+      if (publicUrls.length > 0) {
+        noteContent = `${noteContent}\n\n${publicUrls.join('\n')}`
+      }
+      
+      // Add original Instagram URL
+      if (contentItem.originalUrl) {
+        noteContent = `${noteContent}\n\nOriginal: ${contentItem.originalUrl}`
+      }
+      
+      // Simple text note with all media URLs
+      const noteId = await nostrService.publishNote(noteContent)
+      
+      // Record the cross-post
+      await db.insert(crossPostHistory).values({
+        contentId: contentItem.id,
+        userId,
+        platform: "nostr" as const,
+        platformPostId: noteId,
+        status: "completed",
+        postedAt: new Date(),
+      })
+      
+      nostrService.disconnect()
+      
+      return NextResponse.json({
+        success: true,
+        noteId,
+        nostrPublicKey: nostrService.getPublicKey(),
+        message: `Successfully posted carousel with ${publicUrls.length} items to NOSTR!`
+      })
+    } else {
+      // Single media file - upload to get public URL
+      const localUrl = `http://localhost:8000/media/${userId}/${encodeURIComponent(contentItem.filePath || '')}`
+      
+      console.log('Uploading media to public storage...')
+      let publicUrl: string
+      try {
+        publicUrl = await nostrService.uploadVideoFromUrl(localUrl, contentItem.filePath || 'media')
+        console.log(`Uploaded to public URL: ${publicUrl}`)
+      } catch (error) {
+        console.error('Failed to upload media:', error)
+        return NextResponse.json({ 
+          error: "Failed to upload media to public storage. Make sure Supabase Storage is configured." 
+        }, { status: 500 })
+      }
+      
+      // Publish to NOSTR with public URL
+      const noteId = await nostrService.publishInstagramVideo(
+        publicUrl,
+        contentItem.filePath || 'media.mp4',
+        contentItem.caption || 'Shared from InstaScrape',
+        contentItem.originalUrl
+      )
 
-    // Record the cross-post
-    await db.insert(crossPostHistory).values({
-      contentId: contentItem.id,
-      userId,
-      platform: "nostr" as const, // NOSTR platform type
-      platformPostId: noteId,
-      status: "completed",
-      postedAt: new Date(),
-    })
+      // Record the cross-post
+      await db.insert(crossPostHistory).values({
+        contentId: contentItem.id,
+        userId,
+        platform: "nostr" as const, // NOSTR platform type
+        platformPostId: noteId,
+        status: "completed",
+        postedAt: new Date(),
+      })
 
-    // Cleanup
-    nostrService.disconnect()
+      // Cleanup
+      nostrService.disconnect()
 
-    return NextResponse.json({
-      success: true,
-      noteId,
-      nostrPublicKey: nostrService.getPublicKey(),
-      message: "Successfully posted to NOSTR!"
-    })
+      return NextResponse.json({
+        success: true,
+        noteId,
+        nostrPublicKey: nostrService.getPublicKey(),
+        message: "Successfully posted to NOSTR!"
+      })
+    }
 
   } catch (error) {
     console.error("NOSTR post error:", error)

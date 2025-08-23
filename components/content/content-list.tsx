@@ -23,6 +23,7 @@ import {
 
 interface ContentItem {
   id: string
+  userId: string  // Added this - it's returned from the API
   originalUrl: string
   caption: string | null
   contentType: "image" | "video" | "carousel"
@@ -194,7 +195,7 @@ export function ContentList({ refreshTrigger }: ContentListProps) {
               {item.isCarousel && item.carouselFiles ? (
                 <CarouselPreview
                   carouselFiles={item.carouselFiles}
-                  userId={user?.id || ""}
+                  userId={item.userId}
                   caption={item.caption || ""}
                 />
               ) : (
@@ -202,7 +203,7 @@ export function ContentList({ refreshTrigger }: ContentListProps) {
                   filePath={item.filePath}
                   thumbnailPath={item.thumbnailPath}
                   isVideo={item.isVideo}
-                  userId={user?.id || ""}
+                  userId={item.userId}
                   caption={item.caption || ""}
                 />
               )}
