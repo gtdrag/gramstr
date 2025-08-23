@@ -46,6 +46,7 @@ export function ContentList({ refreshTrigger }: ContentListProps) {
   const [content, setContent] = useState<ContentItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set())
+  const [nostrPostingIds, setNostrPostingIds] = useState<Set<string>>(new Set())
   const { user } = useUser()
 
   const fetchContent = async () => {
@@ -103,6 +104,8 @@ export function ContentList({ refreshTrigger }: ContentListProps) {
   }
 
   const handleNostrPost = async (contentId: string) => {
+    setNostrPostingIds(prev => new Set(prev).add(contentId))
+    
     try {
       const response = await fetch("/api/nostr/post", {
         method: "POST",
@@ -125,6 +128,12 @@ export function ContentList({ refreshTrigger }: ContentListProps) {
     } catch (error) {
       console.error("NOSTR post error:", error)
       toast.error(error instanceof Error ? error.message : "NOSTR posting failed")
+    } finally {
+      setNostrPostingIds(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(contentId)
+        return newSet
+      })
     }
   }
 
@@ -288,9 +297,17 @@ export function ContentList({ refreshTrigger }: ContentListProps) {
                 {item.status === "completed" && (
                   <Button
                     onClick={() => handleNostrPost(item.id)}
-                    className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white px-3 py-1.5 text-xs font-semibold shadow-lg w-full"
+                    disabled={nostrPostingIds.has(item.id)}
+                    className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 disabled:from-purple-400 disabled:to-purple-400 text-white px-3 py-1.5 text-xs font-semibold shadow-lg w-full transition-all duration-200"
                   >
-                    ⚡ Post to NOSTR
+                    {nostrPostingIds.has(item.id) ? (
+                      <div className="flex items-center gap-2">
+                        <div className="animate-spin rounded-full h-3 w-3 border-b border-white" />
+                        Posting...
+                      </div>
+                    ) : (
+                      "⚡ Post to NOSTR"
+                    )}
                   </Button>
                 )}
               </div>
