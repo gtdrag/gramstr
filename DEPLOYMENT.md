@@ -5,29 +5,35 @@ Deploy Dumpstr to production in 15 minutes!
 ## Prerequisites
 - GitHub account with this repo
 - [Vercel](https://vercel.com) account
-- [Railway](https://railway.app) account  
+- [Render.com](https://render.com) account  
 - Existing Supabase project with `dumpstr-media` bucket
 - Clerk application configured
 
-## 🎯 Step 1: Deploy Backend to Railway
+## 🎯 Step 1: Deploy Backend to Render.com
 
-1. **Go to [Railway.app](https://railway.app/new)**
+1. **Go to [render.com](https://render.com/dashboard)**
 
-2. **Deploy from GitHub repo:**
-   - Click "Deploy from GitHub repo"
-   - Select `gtdrag/instascrape` (or your fork)
+2. **Create Web Service:**
+   - Click "New +" → "Web Service"
+   - Connect GitHub account if needed
+   - Select `gtdrag/instascrape` repository
    - Choose branch: `feature/rename-to-dumpstr`
 
 3. **Configure service:**
-   - Railway auto-detects Python from `railway.json`
-   - Service will be named `dumpstr-backend`
-   - Wait for build to complete (~3 minutes)
+   - **Name**: `dumpstr-backend`
+   - **Runtime**: Python 3
+   - **Build Command**: `pip install -r requirements.txt`
+   - **Start Command**: `cd backend && python main.py`
+   - **Plan**: Starter ($7/month)
 
-4. **Get your backend URL:**
-   - Click on the service
-   - Go to Settings → Domains
-   - Click "Generate Domain"
-   - Copy URL (e.g., `dumpstr-backend.up.railway.app`)
+4. **Add Environment Variables:**
+   - `PYTHONUNBUFFERED=1`
+   - `PORT=8000`
+
+5. **Deploy:**
+   - Click "Create Web Service"
+   - Wait for build to complete (~3-5 minutes)
+   - Copy URL (e.g., `https://dumpstr-backend.onrender.com`)
 
 ## 🎨 Step 2: Deploy Frontend to Vercel
 
