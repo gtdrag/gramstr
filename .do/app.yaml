@@ -1,0 +1,20 @@
+# DigitalOcean App Platform configuration
+name: dumpstr-backend
+services:
+- name: api
+  source_dir: /
+  github:
+    repo: gtdrag/instascrape
+    branch: feature/rename-to-dumpstr
+  run_command: cd backend && python main.py
+  environment_slug: python
+  instance_count: 1
+  instance_size_slug: basic-xxs
+  http_port: 8000
+  health_check:
+    http_path: /
+  envs:
+  - key: PYTHONUNBUFFERED
+    value: "1"
+  - key: PORT
+    value: "8000"

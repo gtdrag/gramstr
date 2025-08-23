@@ -1,52 +1,54 @@
 # 🚀 Dumpstr Deployment Guide
 
-Deploy Dumpstr to production in 15 minutes!
+Deploy Dumpstr to production using DigitalOcean App Platform (backend) and Vercel (frontend).
 
 ## Prerequisites
 - GitHub account with this repo
 - [Vercel](https://vercel.com) account
-- [Render.com](https://render.com) account  
+- [DigitalOcean](https://digitalocean.com) account  
 - Existing Supabase project with `dumpstr-media` bucket
 - Clerk application configured
 
-## 🎯 Step 1: Deploy Backend to Render.com
+## 🎯 Step 1: Deploy Backend to DigitalOcean App Platform
 
-1. **Go to [render.com](https://render.com/dashboard)**
+### Option A: Using App Spec (Recommended)
+1. **Go to [cloud.digitalocean.com/apps](https://cloud.digitalocean.com/apps)**
+2. **Click "Create App"**
+3. **Choose Source**: GitHub → `gtdrag/instascrape` → `feature/rename-to-dumpstr` branch
+4. **App Spec Detection**: DigitalOcean will automatically detect our `.do/app.yaml` configuration
+5. **Review Settings**:
+   - Name: `dumpstr-backend`
+   - Plan: Basic ($5/month)
+   - Region: Choose closest to your users
+6. **Click "Create Resources"**
+7. **Wait for deployment** (~5-8 minutes)
+8. **Copy the generated URL** (e.g., `https://dumpstr-backend-xyz.ondigitalocean.app`)
 
-2. **Create Web Service:**
-   - Click "New +" → "Web Service"
-   - Connect GitHub account if needed
-   - Select `gtdrag/instascrape` repository
-   - Choose branch: `feature/rename-to-dumpstr`
-
-3. **Configure service:**
+### Option B: Manual Configuration
+1. **Create App** → **GitHub** → Select repository and branch
+2. **Configure Service**:
    - **Name**: `dumpstr-backend`
-   - **Runtime**: Python 3
-   - **Build Command**: `pip install -r requirements.txt`
-   - **Start Command**: `cd backend && python main.py`
-   - **Plan**: Starter ($7/month)
-
-4. **Add Environment Variables:**
+   - **Source Directory**: `/` (root)
+   - **Build Command**: Auto-detected from Dockerfile
+   - **Run Command**: `cd backend && python main.py`
+   - **HTTP Port**: 8000
+3. **Environment Variables**:
    - `PYTHONUNBUFFERED=1`
    - `PORT=8000`
-
-5. **Deploy:**
-   - Click "Create Web Service"
-   - Wait for build to complete (~3-5 minutes)
-   - Copy URL (e.g., `https://dumpstr-backend.onrender.com`)
+4. **Plan**: Basic ($5/month)
 
 ## 🎨 Step 2: Deploy Frontend to Vercel
 
-### Option A: CLI Deploy (Recommended)
+### CLI Deploy (Recommended)
 ```bash
 # Install Vercel CLI if needed
 npm i -g vercel
 
-# Deploy (from project root)
+# Deploy from project root
 vercel
 
 # Follow prompts:
-# - Set up and deploy? Y
+# - Set up and deploy? Y  
 # - Which scope? (your account)
 # - Link to existing project? N
 # - Project name? dumpstr
@@ -54,29 +56,26 @@ vercel
 # - Override settings? N
 ```
 
-### Option B: Web Deploy
+### Web Deploy
 1. Go to [vercel.com/new](https://vercel.com/new)
 2. Import `gtdrag/instascrape` repository
 3. Select `feature/rename-to-dumpstr` branch
 4. Click "Deploy"
 
-## 🔐 Step 3: Configure Environment Variables
+## 🔐 Step 3: Configure Environment Variables in Vercel
 
-### In Vercel Dashboard:
-1. Go to Project Settings → Environment Variables
-2. Add each variable from `.env.production.example`
-3. **CRITICAL**: Update `NEXT_PUBLIC_API_URL` with your Railway backend URL
+1. **Go to Project Settings → Environment Variables**
+2. **Add each variable**:
 
-### Required Variables:
 ```env
-# Your Railway backend URL
-NEXT_PUBLIC_API_URL=https://dumpstr-backend.up.railway.app
+# Your DigitalOcean backend URL
+NEXT_PUBLIC_API_URL=https://dumpstr-backend-xyz.ondigitalocean.app
 
-# Clerk (copy from Clerk dashboard)
+# Clerk (from Clerk dashboard)
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_xxxxx
 CLERK_SECRET_KEY=sk_live_xxxxx
 
-# Supabase (copy from local .env)
+# Supabase (from your project)
 DATABASE_URL=postgresql://...
 NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJxxxxx
@@ -89,80 +88,88 @@ NOSTR_PRIVATE_KEY=nsec1xxxxx
 STRIPE_SECRET_KEY=sk_live_xxxxx
 ```
 
-## 🔄 Step 4: Redeploy with Environment Variables
+## 🔄 Step 4: Redeploy Frontend
 
 After adding environment variables:
 ```bash
 vercel --prod
 ```
 
-Or in Vercel Dashboard:
-- Go to Deployments
-- Click "Redeploy" on latest deployment
+Or in Vercel Dashboard: Deployments → Redeploy latest
 
 ## ✅ Step 5: Verify Deployment
 
-1. **Test Frontend:**
-   - Visit your Vercel URL
-   - Should see "DUMPSTR" homepage
-   - Login should work
+### Test Backend
+Visit your DigitalOcean URL: `https://dumpstr-backend-xyz.ondigitalocean.app/`
 
-2. **Test Backend:**
-   - Visit `https://your-railway-url.railway.app/`
-   - Should see: `{"message": "Dumpstr API is running"}`
+Should see: `{"message": "Dumpstr API is running"}`
 
-3. **Test Full Flow:**
-   - Login to dashboard
-   - Try downloading an Instagram post
-   - Check gallery displays correctly
-   - Test NOSTR posting
+### Test Frontend  
+Visit your Vercel URL and verify:
+- Homepage loads
+- Login works
+- Dashboard accessible
+
+### Test Full Flow
+1. Login to dashboard
+2. Try downloading an Instagram post
+3. Check gallery displays correctly
+4. Test NOSTR posting
 
 ## 🐛 Troubleshooting
 
-### Backend not responding:
-- Check Railway logs for errors
-- Verify PORT=8000 is set
-- Check Python dependencies installed
+### Backend Issues
+- **Build fails**: Check DigitalOcean build logs
+- **App won't start**: Verify `PORT=8000` environment variable
+- **Dependencies fail**: DigitalOcean handles Docker builds cleanly
 
-### Frontend API calls failing:
-- Verify NEXT_PUBLIC_API_URL is correct
-- Check CORS settings in backend
-- Ensure Railway domain is generated
+### Frontend Issues  
+- **API calls fail**: Verify `NEXT_PUBLIC_API_URL` matches your DigitalOcean URL
+- **CORS errors**: Check backend CORS settings include your Vercel domain
 
-### Database errors:
-- Verify DATABASE_URL is correct
-- Run migrations: `npx drizzle-kit push`
-- Check Supabase connection pooling
+### Database Issues
+- **Connection fails**: Verify `DATABASE_URL` is correct
+- **Migrations needed**: Run `npx drizzle-kit push`
 
-### NOSTR posting fails:
-- Verify `dumpstr-media` bucket exists in Supabase
-- Check bucket is PUBLIC
-- Verify SUPABASE_SERVICE_ROLE_KEY is set
+## 💰 Pricing
+
+### DigitalOcean App Platform
+- **Basic Plan**: $5/month
+- **Professional**: $12/month (auto-scaling)
+
+### Vercel
+- **Hobby**: Free (perfect for personal projects)
+- **Pro**: $20/month (custom domains, analytics)
+
+### Total Monthly Cost
+- **Minimal**: $5/month (DigitalOcean Basic + Vercel Free)
+- **Professional**: $32/month (DigitalOcean Pro + Vercel Pro)
+
+## 🚀 Why DigitalOcean App Platform?
+
+- ✅ **Docker support** - Uses our Dockerfile exactly as-is
+- ✅ **No dependency issues** - Standard Docker builds
+- ✅ **Reliable** - Battle-tested platform
+- ✅ **Simple pricing** - Predictable costs
+- ✅ **Full feature support** - All our packages work
 
 ## 🎉 Success!
 
-Your Dumpstr app is now live at:
-- Frontend: `https://dumpstr.vercel.app`
-- Backend: `https://dumpstr-backend.up.railway.app`
+Your Dumpstr app is now live!
+- **Frontend**: `https://dumpstr.vercel.app`  
+- **Backend**: `https://dumpstr-backend-xyz.ondigitalocean.app`
 
 ## 📝 Post-Deployment
 
-1. **Update Clerk:**
-   - Add production URLs to Clerk allowed origins
+1. **Update Clerk**: Add production URLs to allowed origins
+2. **Custom Domain**: Configure in Vercel if desired
+3. **Monitor**: Use DigitalOcean and Vercel dashboards
 
-2. **Configure Custom Domain (optional):**
-   - In Vercel: Settings → Domains
-   - Add your domain (e.g., dumpstr.com)
-
-3. **Monitor:**
-   - Vercel Analytics for frontend
-   - Railway metrics for backend
-   - Supabase dashboard for database
-
-## 🔄 Updating
+## 🔄 Updates
 
 To deploy updates:
 ```bash
 git push origin feature/rename-to-dumpstr
 ```
-Both Vercel and Railway will auto-deploy!
+
+Both DigitalOcean and Vercel will auto-deploy!
