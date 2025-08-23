@@ -1,11 +1,16 @@
 [phases.setup]
-nixPkgs = ["python39", "python39Packages.pip"]
+nixPkgs = ["python39", "python39Packages.pip", "python39Packages.virtualenv"]
 
 [phases.install]
-cmds = ["pip install -r requirements.txt"]
+cmds = [
+  "python -m venv /opt/venv",
+  "/opt/venv/bin/pip install --upgrade pip",
+  "/opt/venv/bin/pip install -r requirements.txt"
+]
 
 [start]
-cmd = "cd backend && python main.py"
+cmd = "cd backend && /opt/venv/bin/python main.py"
 
 [variables]
 PYTHONUNBUFFERED = "1"
+PATH = "/opt/venv/bin:$PATH"
