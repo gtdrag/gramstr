@@ -25,9 +25,11 @@ export function EnhancedCookieExtractor({ onSuccess }: EnhancedCookieExtractorPr
   const [cookies, setCookies] = useState<CookieField[]>([
     { name: "csrftoken", value: "", required: true, description: "Security token for requests" },
     { name: "ds_user_id", value: "", required: true, description: "Your Instagram user ID" },
-    { name: "ig_nrcb", value: "", required: false, description: "Instagram callback setting" },
-    { name: "mid", value: "", required: false, description: "Machine identifier" },
-    { name: "sessionid", value: "", required: true, description: "Required for Stories and private content" }
+    { name: "sessionid", value: "", required: true, description: "Required for Stories and private content" },
+    { name: "ig_did", value: "", required: true, description: "Instagram device ID - required for Stories" },
+    { name: "mid", value: "", required: true, description: "Machine identifier - required for authentication" },
+    { name: "ig_nrcb", value: "", required: true, description: "Instagram callback setting - required for Stories" },
+    { name: "rur", value: "", required: true, description: "Routing/user region info - required for Stories" }
   ])
   
   const [showValues, setShowValues] = useState(false)
@@ -138,19 +140,24 @@ export function EnhancedCookieExtractor({ onSuccess }: EnhancedCookieExtractorPr
   const copyTemplate = () => {
     const template = `Instagram Cookie Values Template:
 
+REQUIRED COOKIES (all needed for Stories access):
 sessionid: [PASTE YOUR SESSIONID HERE]
 csrftoken: [PASTE YOUR CSRFTOKEN HERE]  
 ds_user_id: [PASTE YOUR DS_USER_ID HERE]
-mid: [PASTE YOUR MID HERE] (optional)
-ig_nrcb: [PASTE YOUR IG_NRCB HERE] (optional)
+ig_did: [PASTE YOUR IG_DID HERE]
+mid: [PASTE YOUR MID HERE]
+ig_nrcb: [PASTE YOUR IG_NRCB HERE]
+rur: [PASTE YOUR RUR HERE]
 
 Instructions:
-1. Open Instagram in your browser
+1. Open Instagram in your browser (make sure you're logged in)
 2. Press F12 to open DevTools
 3. Go to Application tab → Storage → Cookies → https://www.instagram.com
-4. Find each cookie name in the list and copy its Value
+4. Find each cookie name in the list and copy its Value (exact value!)
 5. Paste each value after the colon above
-6. Come back here and paste the values into the form`
+6. Come back here and paste the values into the form
+
+Note: ALL cookies are now required for full Instagram access including Stories`
 
     navigator.clipboard.writeText(template)
     toast.success("Template copied to clipboard!")
