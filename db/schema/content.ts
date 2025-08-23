@@ -14,7 +14,9 @@ export const downloadedContent = pgTable("downloaded_content", {
   status: contentStatus("status").default("downloading").notNull(),
   filePath: text("file_path"),
   thumbnailPath: text("thumbnail_path"),
-  isVideo: boolean("is_video").notNull().default(false), // ADD THIS FIELD!
+  isVideo: boolean("is_video").notNull().default(false),
+  isCarousel: boolean("is_carousel").notNull().default(false),
+  carouselFiles: jsonb("carousel_files"),
   fileSize: integer("file_size"),
   duration: integer("duration"), // for videos in seconds
   likes: integer("likes").default(0),

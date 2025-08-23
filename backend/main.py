@@ -11,7 +11,9 @@ import uuid
 from typing import Optional, List
 import json
 import subprocess
+import shutil
 import datetime
+import time
 
 app = FastAPI(title="InstaScrape API", version="1.0.0")
 
@@ -70,13 +72,10 @@ def load_instagram_cookies():
     # Check for Netscape format cookies first (preferred by yt-dlp)
     netscape_cookies_path = "backend/instagram_cookies.txt"
     if os.path.exists(netscape_cookies_path):
-        try:
-            print("Found Instagram cookies (Netscape format)")
-            return netscape_cookies_path
-        except Exception as e:
-            print(f"Could not load Netscape cookies: {e}")
+        print("Found Instagram cookies (Netscape format)")
+        return netscape_cookies_path
     
-    # Check for JSON cookies and convert them to Netscape format
+    # Only convert JSON if Netscape doesn't exist
     session_cookies_path = "backend/session_cookies.json"
     if os.path.exists(session_cookies_path):
         try:
@@ -91,7 +90,7 @@ def load_instagram_cookies():
             else:
                 print("Found Instagram cookies but missing sessionid - authentication may fail")
             
-            # Convert to Netscape format
+            # Convert to Netscape format (only if doesn't exist)
             if convert_json_to_netscape_cookies(session_cookies_path, netscape_cookies_path):
                 return netscape_cookies_path
             else:
@@ -122,6 +121,8 @@ class ContentMetadata(BaseModel):
     is_video: bool
     file_path: str
     thumbnail_path: Optional[str]
+    is_carousel: bool = False
+    carousel_files: Optional[List[str]] = None
 
 @app.get("/")
 async def root():
@@ -154,25 +155,55 @@ async def download_content(request: DownloadRequest):
                 detail="Instagram Stories require authentication. Please run the cookie extraction script first."
             )
         
+        # Use cookies whenever available for better access
         if cookies_path:
             ydl_opts['cookiefile'] = cookies_path
             print(f"Using Instagram cookies for {'Stories' if is_story else 'authenticated'} download")
         else:
             print("Using yt-dlp without cookies (public posts only)")
         
-        # Download with yt-dlp
+        # Try yt-dlp first (faster and reliable)
+        carousel_caption = None  # Store caption in case we need it for gallery-dl fallback
+        
+        # Extract info first (this usually works even when download fails)
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             try:
-                # First, extract info without downloading
                 info = ydl.extract_info(request.url, download=False)
                 print(f"Successfully extracted info for: {info.get('title', 'Unknown')}")
+                carousel_caption = info.get('description', '') or info.get('title', '')
+                print(f"Extracted caption: {carousel_caption[:100]}..." if len(carousel_caption) > 100 else f"Extracted caption: {carousel_caption}")
+            except Exception as e:
+                print(f"Failed to extract info: {e}")
+                info = None
                 
-                # Now download
+                # Try to read the info.json file that yt-dlp might have saved
+                import glob
+                info_files = glob.glob(f"downloads/{request.user_id}/*.info.json")
+                if info_files:
+                    # Sort by modification time and get the most recent
+                    latest_info = max(info_files, key=os.path.getmtime)
+                    try:
+                        import json
+                        with open(latest_info, 'r') as f:
+                            saved_info = json.load(f)
+                            carousel_caption = saved_info.get('description', '') or saved_info.get('title', '')
+                            print(f"Recovered caption from info.json: {carousel_caption[:100]}..." if len(carousel_caption) > 100 else f"Recovered caption from info.json: {carousel_caption}")
+                    except Exception as info_error:
+                        print(f"Failed to read info.json: {info_error}")
+        
+        # Now try to download
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            try:
+                # Download using the URL (info extraction happens again internally)
                 ydl.download([request.url])
                 print("Download completed successfully")
                 
+                # Re-extract info if needed (download was successful)
+                if not info:
+                    info = ydl.extract_info(request.url, download=False)
+                
                 # Find the actual downloaded files
-                content_title = info.get('title', 'content')
+                content_title = info.get('title', 'content') if info else 'content'
                 user_download_dir = Path(f"downloads/{request.user_id}")
                 
                 # Look for the actual downloaded files
@@ -229,6 +260,65 @@ async def download_content(request: DownloadRequest):
                 
                 print(f"Final decision: is_video={is_video}, main_file={main_file}, thumbnail={thumbnail_file}")
                 
+                # 🎠 Smart carousel detection: Check if we might have missed carousel content
+                is_carousel = False
+                carousel_files = None
+                
+                # Check if this might be a carousel that yt-dlp only partially downloaded
+                if (not is_story and cookies_path and 
+                    info.get('_type') == 'playlist' and 
+                    info.get('playlist_count', 0) > 1):
+                    
+                    print(f"🎠 Detected potential carousel: playlist with {info.get('playlist_count')} items, but yt-dlp only got 1")
+                    print("🎠 Trying gallery-dl to get all carousel content...")
+                    
+                    try:
+                        # Try gallery-dl for this URL
+                        gallery_result = subprocess.run([
+                            "gallery-dl", "-d", str(download_dir), request.url, "--cookies", cookies_path
+                        ], capture_output=True, text=True, timeout=90)
+                        
+                        if gallery_result.returncode == 0:
+                            # Find gallery-dl files
+                            gallery_files = []
+                            for file_path in download_dir.rglob("*"):
+                                if (file_path.is_file() and 
+                                    file_path.stat().st_mtime > (time.time() - 120) and
+                                    file_path.suffix.lower() in ['.mp4', '.webm', '.mkv', '.avi', '.mov', '.jpg', '.jpeg', '.png', '.webp'] and
+                                    file_path.name != Path(main_file).name):  # Don't include the file we already have
+                                    gallery_files.append(file_path)
+                            
+                            if gallery_files:
+                                print(f"✅ Gallery-dl found {len(gallery_files)} additional files!")
+                                
+                                # Move gallery-dl files to main directory
+                                for file_path in gallery_files:
+                                    if file_path.parent != download_dir:  # Only move if in subdirectory
+                                        destination = download_dir / file_path.name
+                                        shutil.move(str(file_path), str(destination))
+                                        print(f"Moved {file_path.name} to main directory")
+                                
+                                # Clean up empty subdirectories
+                                for subdir in download_dir.iterdir():
+                                    if subdir.is_dir():
+                                        try:
+                                            shutil.rmtree(subdir)
+                                        except:
+                                            pass
+                                
+                                # Update carousel info
+                                is_carousel = True
+                                all_files = [Path(main_file).name] + [f.name for f in gallery_files]
+                                carousel_files = all_files
+                                print(f"🎠 Complete carousel: {carousel_files}")
+                            else:
+                                print("❌ Gallery-dl didn't find additional files")
+                        else:
+                            print(f"❌ Gallery-dl failed: {gallery_result.stderr}")
+                    
+                    except Exception as e:
+                        print(f"❌ Gallery-dl error: {e}")
+                
                 # Extract metadata from info with proper file names
                 metadata = ContentMetadata(
                     id=info.get('id', str(uuid.uuid4())),
@@ -238,18 +328,86 @@ async def download_content(request: DownloadRequest):
                     likes=info.get('like_count', 0) or 0,
                     is_video=is_video,
                     file_path=Path(main_file).name if main_file else None,  # Store just filename for frontend
-                    thumbnail_path=Path(thumbnail_file).name if thumbnail_file else None  # Store just filename
+                    thumbnail_path=Path(thumbnail_file).name if thumbnail_file else None,  # Store just filename
+                    is_carousel=is_carousel,
+                    carousel_files=carousel_files
                 )
                 
                 return {
                     "success": True,
                     "metadata": metadata.model_dump(),
-                    "message": "Content downloaded successfully with yt-dlp"
+                    "message": f"Content downloaded successfully{' (carousel with ' + str(len(carousel_files)) + ' items)' if is_carousel else ''}"
                 }
                 
             except Exception as e:
                 error_str = str(e)
                 print(f"yt-dlp download failed: {error_str}")
+                
+                # Check if this might be a carousel that yt-dlp can't handle
+                if "No video formats found" in error_str and not is_story:
+                    print("🎠 yt-dlp failed - might be a carousel, trying gallery-dl...")
+                    print(f"🎠 Caption available for carousel: {carousel_caption[:50] if carousel_caption else 'NO CAPTION FOUND'}")
+                    
+                    if cookies_path:
+                        try:
+                            # Try gallery-dl as fallback for carousels
+                            gallery_result = subprocess.run([
+                                "gallery-dl", "-d", str(download_dir), request.url, "--cookies", cookies_path
+                            ], capture_output=True, text=True, timeout=90)
+                            
+                            if gallery_result.returncode == 0:
+                                print("✅ Gallery-dl succeeded!")
+                                
+                                # Find downloaded files (gallery-dl preserves original timestamps)
+                                carousel_files = []
+                                print(f"Searching for files in {download_dir}")
+                                # Look specifically in gallery-dl subdirectories
+                                for file_path in download_dir.rglob("*"):
+                                    if (file_path.is_file() and 
+                                        file_path.suffix.lower() in ['.mp4', '.webm', '.mkv', '.avi', '.mov', '.jpg', '.jpeg', '.png', '.webp'] and
+                                        'instagram' in str(file_path)):  # gallery-dl creates instagram subdirectory
+                                        carousel_files.append(file_path)
+                                        print(f"Found carousel file: {file_path.name}")
+                                
+                                if carousel_files:
+                                    # Move files from subdirectories
+                                    for file_path in carousel_files:
+                                        if file_path.parent != download_dir:
+                                            destination = download_dir / file_path.name
+                                            shutil.move(str(file_path), str(destination))
+                                    
+                                    # Clean up subdirectories
+                                    for subdir in download_dir.iterdir():
+                                        if subdir.is_dir():
+                                            try:
+                                                shutil.rmtree(subdir)
+                                            except:
+                                                pass
+                                    
+                                    # Create metadata
+                                    metadata = ContentMetadata(
+                                        id=str(uuid.uuid4()),
+                                        url=request.url,
+                                        caption=carousel_caption or "Instagram carousel post",
+                                        date=datetime.datetime.now().isoformat(),
+                                        likes=0,
+                                        is_video=False,  # Carousels are mixed media
+                                        file_path=carousel_files[0].name if carousel_files else None,
+                                        thumbnail_path=None,
+                                        is_carousel=True,
+                                        carousel_files=[f.name for f in carousel_files]
+                                    )
+                                    
+                                    print(f"🎠 Returning carousel with {len(carousel_files)} files: {[f.name for f in carousel_files]}")
+                                    return {
+                                        "success": True,
+                                        "metadata": metadata.model_dump(),
+                                        "message": f"Carousel downloaded successfully with {len(carousel_files)} items"
+                                    }
+                            else:
+                                print(f"Gallery-dl also failed: {gallery_result.stderr}")
+                        except Exception as gallery_error:
+                            print(f"Gallery-dl fallback error: {gallery_error}")
                 
                 # Check for common session expiration errors
                 if any(phrase in error_str.lower() for phrase in [
@@ -298,6 +456,96 @@ async def download_content(request: DownloadRequest):
         print(f"Download error: {error_details}")
         raise HTTPException(status_code=500, detail=f"Download failed: {str(e)}")
 
+@app.post("/download-carousel")
+async def download_carousel_content(request: DownloadRequest):
+    """Download Instagram carousel using gallery-dl"""
+    try:
+        print(f"🎠 Starting gallery-dl carousel download for URL: {request.url}")
+        
+        # Validate Instagram URL
+        if not is_valid_instagram_url(request.url):
+            raise HTTPException(status_code=400, detail="Invalid Instagram URL")
+        
+        # Create user-specific download directory
+        download_dir = Path(f"downloads/{request.user_id}")
+        download_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Check for cookies
+        cookies_path = load_instagram_cookies()
+        if not cookies_path:
+            raise HTTPException(status_code=400, detail="Gallery-dl requires Instagram authentication. Please upload your cookies first.")
+        
+        # Use gallery-dl to download
+        cmd = ["gallery-dl", "-d", str(download_dir), request.url, "--cookies", cookies_path]
+        print(f"Running gallery-dl: {' '.join(cmd)}")
+        
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+        
+        if result.returncode != 0:
+            raise HTTPException(status_code=500, detail=f"Gallery-dl failed: {result.stderr}")
+        
+        # Find downloaded files (gallery-dl creates subdirectories)
+        downloaded_files = []
+        for file_path in download_dir.rglob("*"):
+            if (file_path.is_file() and 
+                file_path.stat().st_mtime > (time.time() - 120) and  # Files modified in last 2 minutes
+                not file_path.name.endswith('.info.json') and
+                file_path.suffix.lower() in ['.mp4', '.webm', '.mkv', '.avi', '.mov', '.jpg', '.jpeg', '.png', '.webp']):
+                downloaded_files.append(file_path)
+                print(f"Found downloaded file: {file_path}")
+        
+        if not downloaded_files:
+            raise HTTPException(status_code=500, detail="No files were downloaded by gallery-dl")
+        
+        # Move files to main directory for consistency with our system
+        moved_files = []
+        for file_path in downloaded_files:
+            destination = download_dir / file_path.name
+            shutil.move(str(file_path), str(destination))
+            moved_files.append(destination)
+            print(f"Moved {file_path.name} to main directory")
+        
+        # Clean up empty subdirectories
+        for subdir in download_dir.iterdir():
+            if subdir.is_dir():
+                try:
+                    shutil.rmtree(subdir)
+                except:
+                    pass
+        
+        # Sort files and determine main file
+        moved_files.sort(key=lambda x: x.stat().st_mtime, reverse=True)
+        main_file = moved_files[0]
+        
+        # Determine if main file is video
+        is_video = main_file.suffix.lower() in ['.mp4', '.webm', '.mkv', '.avi', '.mov']
+        
+        # Create metadata
+        metadata = ContentMetadata(
+            id=str(uuid.uuid4()),
+            url=request.url,
+            caption="Gallery carousel post",
+            date=datetime.datetime.now().isoformat(),
+            likes=0,
+            is_video=is_video,
+            file_path=main_file.name,
+            thumbnail_path=None,
+            is_carousel=len(moved_files) > 1,
+            carousel_files=[f.name for f in moved_files] if len(moved_files) > 1 else None
+        )
+        
+        return {
+            "success": True,
+            "metadata": metadata.model_dump(),
+            "message": f"Carousel downloaded successfully with gallery-dl ({len(moved_files)} files)"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Carousel download error: {e}")
+        raise HTTPException(status_code=500, detail=f"Carousel download failed: {str(e)}")
+
 @app.get("/downloads/{user_id}")
 async def list_downloads(user_id: str):
     """List all downloaded content for a user"""
@@ -338,10 +586,20 @@ async def serve_media(user_id: str, filename: str):
         if not file_path.resolve().is_relative_to(downloads_dir):
             raise HTTPException(status_code=403, detail="Access denied")
         
+        # Determine media type based on file extension
+        import mimetypes
+        media_type, _ = mimetypes.guess_type(filename)
+        if not media_type:
+            media_type = "application/octet-stream"
+        
         return FileResponse(
             path=str(file_path),
-            filename=filename,
-            media_type="application/octet-stream"
+            media_type=media_type,
+            headers={
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET",
+                "Cache-Control": "public, max-age=3600"
+            }
         )
         
     except HTTPException:

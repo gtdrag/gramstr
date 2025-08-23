@@ -52,12 +52,14 @@ export async function POST(request: NextRequest) {
       originalUrl: url,
       shortcode: result.metadata.id,
       caption: result.metadata.caption,
-      contentType: result.metadata.is_video ? "video" : "image",
+      contentType: result.metadata.is_carousel ? "carousel" : (result.metadata.is_video ? "video" : "image"),
       status: "completed",
       filePath: result.metadata.file_path,
       thumbnailPath: result.metadata.thumbnail_path,
       likes: result.metadata.likes,
-      isVideo: result.metadata.is_video, // ADD THIS MISSING FIELD!
+      isVideo: result.metadata.is_video,
+      isCarousel: result.metadata.is_carousel || false,
+      carouselFiles: result.metadata.carousel_files || null,
       metadata: result.metadata,
     }).returning()
 

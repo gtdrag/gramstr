@@ -7,6 +7,7 @@ import { toast } from "sonner"
 import { Share2, Calendar, Heart, Eye, Trash2 } from "lucide-react"
 import { format } from "date-fns"
 import { MediaPreview } from "./media-preview"
+import { CarouselPreview } from "./carousel-preview"
 import { useUser } from "@clerk/nextjs"
 import {
   AlertDialog,
@@ -32,6 +33,8 @@ interface ContentItem {
   filePath: string | null
   thumbnailPath: string | null
   isVideo: boolean
+  isCarousel: boolean
+  carouselFiles: string[] | null
 }
 
 interface ContentListProps {
@@ -51,6 +54,12 @@ export function ContentList({ refreshTrigger }: ContentListProps) {
 
       if (!response.ok) {
         throw new Error(data.error || "Failed to fetch content")
+      }
+
+      // Debug: Log carousel items
+      const carouselItems = (data.content || []).filter((item: ContentItem) => item.isCarousel)
+      if (carouselItems.length > 0) {
+        console.log('Found carousel items:', carouselItems)
       }
 
       setContent(data.content)
@@ -182,13 +191,21 @@ export function ContentList({ refreshTrigger }: ContentListProps) {
           >
             {/* Media Preview */}
             <div className="relative">
-              <MediaPreview
-                filePath={item.filePath}
-                thumbnailPath={item.thumbnailPath}
-                isVideo={item.isVideo}
-                userId={user?.id || ""}
-                caption={item.caption || ""}
-              />
+              {item.isCarousel && item.carouselFiles ? (
+                <CarouselPreview
+                  carouselFiles={item.carouselFiles}
+                  userId={user?.id || ""}
+                  caption={item.caption || ""}
+                />
+              ) : (
+                <MediaPreview
+                  filePath={item.filePath}
+                  thumbnailPath={item.thumbnailPath}
+                  isVideo={item.isVideo}
+                  userId={user?.id || ""}
+                  caption={item.caption || ""}
+                />
+              )}
               
               {/* Delete Button - Top Right Corner */}
               <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
