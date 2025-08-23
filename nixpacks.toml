@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ["python310", "python310Packages.pip"]
+
+[phases.install]
+cmds = ["pip install --no-deps -r requirements.txt"]
+
+[start]
+cmd = "cd backend && python main.py"
+
+[variables]
+PYTHONUNBUFFERED = "1"
