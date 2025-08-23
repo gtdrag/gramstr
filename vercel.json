@@ -1,0 +1,30 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "framework": "nextjs",
+  "env": {
+    "NEXT_PUBLIC_API_URL": "@backend-url",
+    "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY": "@clerk-publishable-key",
+    "CLERK_SECRET_KEY": "@clerk-secret-key",
+    "NEXT_PUBLIC_CLERK_SIGN_IN_URL": "/login",
+    "NEXT_PUBLIC_CLERK_SIGN_UP_URL": "/signup",
+    "NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL": "/dashboard",
+    "NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL": "/dashboard",
+    "DATABASE_URL": "@database-url",
+    "NEXT_PUBLIC_SUPABASE_URL": "@supabase-url",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "@supabase-anon-key",
+    "SUPABASE_SERVICE_ROLE_KEY": "@supabase-service-role-key",
+    "STRIPE_SECRET_KEY": "@stripe-secret-key",
+    "STRIPE_WEBHOOK_SECRET": "@stripe-webhook-secret",
+    "NOSTR_PRIVATE_KEY": "@nostr-private-key"
+  },
+  "regions": ["iad1"],
+  "functions": {
+    "app/api/nostr/post/route.ts": {
+      "maxDuration": 30
+    },
+    "app/api/content/download/route.ts": {
+      "maxDuration": 60
+    }
+  }
+}
