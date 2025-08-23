@@ -2,7 +2,10 @@
 nixPkgs = ["python310", "python310Packages.pip"]
 
 [phases.install]
-cmds = ["pip install --no-deps -r requirements.txt"]
+cmds = [
+  "pip install fastapi==0.104.1 uvicorn==0.24.0 python-multipart==0.0.6 pydantic==2.5.0 requests==2.31.0 python-dotenv==1.0.0",
+  "pip install yt-dlp --no-deps"
+]
 
 [start]
 cmd = "cd backend && python main.py"
