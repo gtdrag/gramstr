@@ -19,8 +19,8 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "Mckay's App Template",
-  description: "The easiest way to start your next project."
+  title: "Dumpstr - Instagram to NOSTR",
+  description: "Download Instagram content and cross-post to decentralized platforms."
 }
 
 export default function RootLayout({

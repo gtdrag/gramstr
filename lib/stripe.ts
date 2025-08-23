@@ -9,7 +9,7 @@ if (!stripeSecretKey) {
 export const stripe = new Stripe(stripeSecretKey, {
   apiVersion: "2025-05-28.basil",
   appInfo: {
-    name: "Mckay's App Template",
+    name: "Dumpstr",
     version: "0.1.0"
   }
 })
