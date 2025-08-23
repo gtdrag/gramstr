@@ -1,0 +1,6 @@
+# Netscape HTTP Cookie File
+# This is a generated file! Do not edit.
+
+.instagram.com	TRUE	/	TRUE	0	csrftoken	RX2dInEiESzr55pPT3t1PG7LFd3M1ZIW
+.instagram.com	TRUE	/	TRUE	0	ds_user_id	4414432
+.instagram.com	TRUE	/	TRUE	0	sessionid	4414432%3Ay5NXVB4VD7AI27%3A24%3AAYde74NSa3b_uY6KNtwcKKKdspootyzv_c-12w7yXw
