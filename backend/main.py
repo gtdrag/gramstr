@@ -142,6 +142,24 @@ class ContentMetadata(BaseModel):
 
 @app.get("/")
 async def root():
+    # Clear any invalid session status on startup/health check
+    try:
+        backend_dir = Path(__file__).parent
+        status_file = backend_dir / "session_status.json"
+        if status_file.exists():
+            import json
+            with open(status_file, 'r') as f:
+                status_data = json.load(f)
+            # Only clear if marked as invalid without actual cookies
+            if status_data.get("is_valid") == False:
+                cookies_exist = (backend_dir / "session_cookies.json").exists() or (backend_dir / "instagram_cookies.txt").exists()
+                if not cookies_exist:
+                    # Remove invalid status file when no cookies exist
+                    status_file.unlink()
+                    print("Cleared invalid session status file (no cookies present)")
+    except Exception as e:
+        print(f"Error checking session status: {e}")
+    
     return {"message": "Dumpstr API is running"}
 
 @app.post("/download")
@@ -426,7 +444,9 @@ async def download_content(request: DownloadRequest):
                             print(f"Gallery-dl fallback error: {gallery_error}")
                 
                 # Check for common session expiration errors
-                if any(phrase in error_str.lower() for phrase in [
+                # ONLY mark session invalid if we actually have cookies that failed
+                cookies_path = load_instagram_cookies()
+                if cookies_path and any(phrase in error_str.lower() for phrase in [
                     "you need to log in",
                     "login required", 
                     "authentication required",
@@ -439,7 +459,7 @@ async def download_content(request: DownloadRequest):
                     "content is not available",
                     "login to access"
                 ]):
-                    # Mark session as invalid in status file
+                    # Mark session as invalid in status file ONLY if we had cookies
                     try:
                         import json
                         backend_dir = Path(__file__).parent
@@ -451,7 +471,7 @@ async def download_content(request: DownloadRequest):
                         }
                         with open(status_file, 'w') as f:
                             json.dump(status_data, f)
-                        print("Marked session as invalid in status file")
+                        print("Marked session as invalid in status file (had cookies that failed)")
                     except Exception as status_error:
                         print(f"Failed to update session status: {status_error}")
                     
