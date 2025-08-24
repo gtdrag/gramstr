@@ -3,8 +3,7 @@ import { auth } from "@clerk/nextjs/server"
 import { db } from "@/db"
 import { downloadedContent } from "@/db/schema"
 import { eq, and } from "drizzle-orm"
-import fs from "fs/promises"
-import path from "path"
+import { deleteFromSupabase } from "@/lib/supabase-storage"
 
 export async function DELETE(request: NextRequest) {
   try {
@@ -38,42 +37,53 @@ export async function DELETE(request: NextRequest) {
     const item = contentItem[0]
     const errors: string[] = []
 
-    // Clean up files from filesystem
+    // Clean up files from Supabase Storage
     try {
-      if (item.filePath) {
-        const fullFilePath = path.join(process.cwd(), "downloads", userId, item.filePath)
-        try {
-          await fs.access(fullFilePath)
-          await fs.unlink(fullFilePath)
-        } catch (fileError) {
-          console.log(`File not found or already deleted: ${fullFilePath}`)
+      // Check if files are Supabase URLs
+      const isSupabaseUrl = item.filePath?.startsWith('http')
+      
+      if (isSupabaseUrl && item.filePath) {
+        // Extract the file path from Supabase URL
+        // URL format: https://[project].supabase.co/storage/v1/object/public/dumpstr-media/[userId]/[timestamp]_[filename]
+        const url = new URL(item.filePath)
+        const pathParts = url.pathname.split('/dumpstr-media/')
+        if (pathParts[1]) {
+          const deleted = await deleteFromSupabase(pathParts[1])
+          if (!deleted) {
+            errors.push("Failed to delete main file from storage")
+          }
         }
       }
 
-      if (item.thumbnailPath && item.thumbnailPath !== item.filePath) {
-        const fullThumbnailPath = path.join(process.cwd(), "downloads", userId, item.thumbnailPath)
-        try {
-          await fs.access(fullThumbnailPath)
-          await fs.unlink(fullThumbnailPath)
-        } catch (fileError) {
-          console.log(`Thumbnail not found or already deleted: ${fullThumbnailPath}`)
+      if (isSupabaseUrl && item.thumbnailPath && item.thumbnailPath !== item.filePath) {
+        const url = new URL(item.thumbnailPath)
+        const pathParts = url.pathname.split('/dumpstr-media/')
+        if (pathParts[1]) {
+          const deleted = await deleteFromSupabase(pathParts[1])
+          if (!deleted) {
+            errors.push("Failed to delete thumbnail from storage")
+          }
         }
       }
 
-      // Clean up any additional metadata files (.info.json)
-      if (item.filePath) {
-        const baseFileName = item.filePath.replace(/\.(mp4|jpg|jpeg|png|webp)$/i, '')
-        const infoFilePath = path.join(process.cwd(), "downloads", userId, `${baseFileName}.info.json`)
-        try {
-          await fs.access(infoFilePath)
-          await fs.unlink(infoFilePath)
-        } catch (fileError) {
-          console.log(`Info file not found: ${infoFilePath}`)
+      // Delete carousel files if present
+      if (item.carouselFiles && Array.isArray(item.carouselFiles)) {
+        for (const carouselFile of item.carouselFiles) {
+          if (carouselFile?.startsWith('http')) {
+            const url = new URL(carouselFile)
+            const pathParts = url.pathname.split('/dumpstr-media/')
+            if (pathParts[1]) {
+              const deleted = await deleteFromSupabase(pathParts[1])
+              if (!deleted) {
+                errors.push(`Failed to delete carousel file from storage`)
+              }
+            }
+          }
         }
       }
-    } catch (filesystemError) {
-      console.error("Filesystem cleanup error:", filesystemError)
-      errors.push("Failed to clean up some files")
+    } catch (storageError) {
+      console.error("Storage cleanup error:", storageError)
+      errors.push("Failed to clean up some files from storage")
     }
 
     // Delete from database (this will cascade to related tables due to foreign key constraints)
