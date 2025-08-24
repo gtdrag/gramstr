@@ -3,7 +3,7 @@
   "outputDirectory": ".next",
   "framework": "nextjs",
   "env": {
-    "NEXT_PUBLIC_API_URL": "@backend-url",
+    "NEXT_PUBLIC_API_URL": "https://instascrape.fly.dev",
     "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY": "@clerk-publishable-key",
     "CLERK_SECRET_KEY": "@clerk-secret-key",
     "NEXT_PUBLIC_CLERK_SIGN_IN_URL": "/login",
