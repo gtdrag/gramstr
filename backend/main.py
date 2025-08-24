@@ -767,6 +767,25 @@ async def validate_session(request: dict):
             detail=f"Session validation failed: {str(e)}"
         )
 
+@app.post("/restore-cookies")
+async def restore_cookies_endpoint():
+    """Endpoint to trigger cookie restoration from database"""
+    try:
+        # Check if we already have cookies
+        existing_cookies = load_instagram_cookies()
+        if existing_cookies:
+            return {"message": "Cookies already present", "restored": False}
+        
+        # This endpoint would be called by a scheduled job or on-demand
+        # The actual restoration happens via the frontend API
+        return {
+            "message": "Cookie restoration must be triggered from frontend",
+            "restored": False,
+            "info": "Use /api/auth/instagram/restore endpoint"
+        }
+    except Exception as e:
+        return {"error": str(e), "restored": False}
+
 @app.get("/auth/status")
 async def get_auth_status():
     """Check authentication status"""

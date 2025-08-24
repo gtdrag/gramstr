@@ -1,7 +1,18 @@
 import { NextRequest, NextResponse } from "next/server"
+import { auth } from "@clerk/nextjs/server"
+import { saveInstagramCookies } from "@/actions/instagram-cookies"
 
 export async function POST(request: NextRequest) {
   try {
+    const { userId } = await auth()
+    
+    if (!userId) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      )
+    }
+    
     const formData = await request.formData()
     const file = formData.get('cookies') as File | null
 
@@ -54,6 +65,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Save cookies to database for persistence
+    const cookiesSaved = await saveInstagramCookies(userId, cookies)
+    if (!cookiesSaved.success) {
+      console.error("Failed to save cookies to database:", cookiesSaved.error)
+    }
+    
     // Always send cookies to the backend API - it's the single source of truth
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
     
