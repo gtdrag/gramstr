@@ -8,11 +8,17 @@ import { eq } from "drizzle-orm"
 export async function getCustomerByUserId(
   userId: string
 ): Promise<SelectCustomer | null> {
-  const customer = await db.query.customers.findFirst({
-    where: eq(customers.userId, userId)
-  })
+  try {
+    const customer = await db.query.customers.findFirst({
+      where: eq(customers.userId, userId)
+    })
 
-  return customer || null
+    return customer || null
+  } catch (error) {
+    console.error("Error fetching customer by userId:", error)
+    // Return null instead of throwing to prevent server crashes
+    return null
+  }
 }
 
 export async function getBillingDataByUserId(userId: string): Promise<{

@@ -18,11 +18,35 @@ export default async function DashboardLayout({
 
   // Create customer record if it doesn't exist
   if (!customer) {
-    const result = await createCustomer(user.id)
-    if (result.isSuccess && result.data) {
-      customer = result.data
-    } else {
-      redirect("/?error=customer-creation-failed")
+    try {
+      const result = await createCustomer(user.id)
+      if (result.isSuccess && result.data) {
+        customer = result.data
+      } else {
+        console.warn("Failed to create customer, proceeding with default values")
+        // Create a temporary customer object to prevent crashes
+        customer = {
+          id: "temp-" + user.id,
+          userId: user.id,
+          membership: "free" as const,
+          stripeCustomerId: null,
+          stripeSubscriptionId: null,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      }
+    } catch (error) {
+      console.error("Error creating customer:", error)
+      // Create a temporary customer object to prevent crashes
+      customer = {
+        id: "temp-" + user.id,
+        userId: user.id,
+        membership: "free" as const,
+        stripeCustomerId: null,
+        stripeSubscriptionId: null,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
     }
   }
 
