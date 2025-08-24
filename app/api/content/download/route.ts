@@ -48,21 +48,43 @@ export async function POST(request: NextRequest) {
     const result = await pythonResponse.json()
 
     // Save to database
-    const contentRecord = await db.insert(downloadedContent).values({
-      userId,
-      originalUrl: url,
-      shortcode: result.metadata.id,
-      caption: result.metadata.caption,
-      contentType: result.metadata.is_carousel ? "carousel" : (result.metadata.is_video ? "video" : "image"),
-      status: "completed",
-      filePath: result.metadata.file_path,
-      thumbnailPath: result.metadata.thumbnail_path,
-      likes: result.metadata.likes,
-      isVideo: result.metadata.is_video,
-      isCarousel: result.metadata.is_carousel || false,
-      carouselFiles: result.metadata.carousel_files || null,
-      metadata: result.metadata,
-    }).returning()
+    let contentRecord
+    try {
+      contentRecord = await db.insert(downloadedContent).values({
+        userId,
+        originalUrl: url,
+        shortcode: result.metadata.id,
+        caption: result.metadata.caption,
+        contentType: result.metadata.is_carousel ? "carousel" : (result.metadata.is_video ? "video" : "image"),
+        status: "completed",
+        filePath: result.metadata.file_path,
+        thumbnailPath: result.metadata.thumbnail_path,
+        likes: result.metadata.likes,
+        isVideo: result.metadata.is_video,
+        isCarousel: result.metadata.is_carousel || false,
+        carouselFiles: result.metadata.carousel_files || null,
+        metadata: result.metadata,
+      }).returning()
+    } catch (dbError) {
+      console.error("Database insert error:", dbError)
+      // Return success without database save for now - just pass through backend result
+      return NextResponse.json({
+        success: true,
+        content: {
+          id: result.metadata.id,
+          originalUrl: url,
+          caption: result.metadata.caption,
+          contentType: result.metadata.is_carousel ? "carousel" : (result.metadata.is_video ? "video" : "image"),
+          filePath: result.metadata.file_path,
+          isVideo: result.metadata.is_video,
+          isCarousel: result.metadata.is_carousel || false,
+          carouselFiles: result.metadata.carousel_files || null,
+          metadata: result.metadata,
+        },
+        message: "Content downloaded successfully (database save skipped due to connection issue)",
+        warning: "Database connection issue - content not persisted"
+      })
+    }
 
     return NextResponse.json({
       success: true,
