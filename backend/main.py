@@ -767,6 +767,91 @@ async def validate_session(request: dict):
             detail=f"Session validation failed: {str(e)}"
         )
 
+@app.get("/auth/status")
+async def get_auth_status():
+    """Check authentication status"""
+    try:
+        backend_dir = Path(__file__).parent
+        cookies_path = load_instagram_cookies()
+        
+        has_valid_auth = False
+        session_age = None
+        server_validation_failed = False
+        
+        if cookies_path:
+            # Check if cookies file exists and has sessionid
+            try:
+                if cookies_path.endswith('.json'):
+                    with open(cookies_path, 'r') as f:
+                        cookie_data = json.load(f)
+                        session_cookie = next((c for c in cookie_data if c.get('name') == 'sessionid'), None)
+                        if session_cookie and session_cookie.get('value'):
+                            has_valid_auth = True
+                            # Get file modification time
+                            stats = os.stat(cookies_path)
+                            session_age = int((datetime.datetime.now().timestamp() - stats.st_mtime) / (60 * 60 * 24))
+                else:
+                    # Netscape format
+                    with open(cookies_path, 'r') as f:
+                        content = f.read()
+                        if 'sessionid' in content:
+                            has_valid_auth = True
+                            stats = os.stat(cookies_path)
+                            session_age = int((datetime.datetime.now().timestamp() - stats.st_mtime) / (60 * 60 * 24))
+            except Exception as e:
+                print(f"Error reading cookies: {e}")
+        
+        # Check session status file
+        status_file = backend_dir / "session_status.json"
+        if status_file.exists():
+            try:
+                with open(status_file, 'r') as f:
+                    status_data = json.load(f)
+                    if status_data.get('is_valid') == False:
+                        server_validation_failed = True
+                        has_valid_auth = False
+            except:
+                pass
+        
+        # Determine session status
+        session_status = "unknown"
+        warning_message = None
+        
+        if server_validation_failed:
+            session_status = "expired"
+            warning_message = "Session expired during use - please refresh your Instagram cookies"
+        elif has_valid_auth and session_age is not None:
+            if session_age < 14:
+                session_status = "fresh"
+            elif session_age < 21:
+                session_status = "aging"
+                warning_message = "Session is getting older - consider refreshing cookies soon"
+            elif session_age < 30:
+                session_status = "old"
+                warning_message = "Session may expire soon - recommend refreshing cookies"
+            else:
+                session_status = "expired"
+                warning_message = "Session is very old and likely expired - please refresh cookies"
+        
+        return {
+            "authenticated": has_valid_auth,
+            "storiesSupported": has_valid_auth,
+            "sessionAge": session_age,
+            "sessionStatus": session_status,
+            "warningMessage": warning_message,
+            "message": f"Instagram authentication available - Stories downloads enabled ({session_age} days old)" if has_valid_auth else "No Instagram authentication found - Stories require login"
+        }
+    except Exception as e:
+        print(f"Auth status error: {e}")
+        return {
+            "authenticated": False,
+            "storiesSupported": False,
+            "sessionAge": None,
+            "sessionStatus": "unknown",
+            "warningMessage": None,
+            "message": "Failed to check authentication status"
+        }
+
 @app.post("/upload-cookies")
 async def upload_cookies(request: Request):
     """Receive cookies from frontend and save them"""

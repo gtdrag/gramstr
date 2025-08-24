@@ -4,7 +4,33 @@ import path from "path"
 
 export async function GET() {
   try {
-    // Check for valid Instagram authentication
+    // In production, check with backend; in dev, check local files
+    if (process.env.NODE_ENV === 'production' || process.env.NEXT_PUBLIC_API_URL) {
+      // Production: Check with backend API
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      try {
+        const response = await fetch(`${backendUrl}/auth/status`)
+        if (response.ok) {
+          const data = await response.json()
+          return NextResponse.json(data)
+        }
+      } catch (error) {
+        console.error("Failed to check backend auth status:", error)
+        // Fall through to return unauthenticated state
+      }
+      
+      // If backend check fails, return unauthenticated
+      return NextResponse.json({
+        authenticated: false,
+        storiesSupported: false,
+        sessionAge: null,
+        sessionStatus: "unknown",
+        warningMessage: null,
+        message: "No Instagram authentication found - Stories require login"
+      })
+    }
+    
+    // Development: Check local files
     let hasValidAuth = false
     let sessionAge = null
     let cookieUploadTime = null
