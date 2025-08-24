@@ -11,6 +11,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    console.log("DOWNLOAD API - userId:", userId)
+
     const { url } = await request.json()
 
     if (!url) {

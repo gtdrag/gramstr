@@ -12,11 +12,24 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const content = await db
-      .select()
-      .from(downloadedContent)
-      .where(eq(downloadedContent.userId, userId))
-      .orderBy(desc(downloadedContent.downloadedAt))
+    console.log("LIST API - userId:", userId)
+
+    let content
+    try {
+      content = await db
+        .select()
+        .from(downloadedContent)
+        .where(eq(downloadedContent.userId, userId))
+        .orderBy(desc(downloadedContent.downloadedAt))
+    } catch (dbError) {
+      console.error("Database query error:", dbError)
+      // Return empty array when database is unavailable
+      return NextResponse.json({
+        success: true,
+        content: [],
+        message: "No content available - database connection issue"
+      })
+    }
 
     return NextResponse.json({
       success: true,
