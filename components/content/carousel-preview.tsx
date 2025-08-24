@@ -13,6 +13,7 @@ interface CarouselPreviewProps {
 
 export function CarouselPreview({ carouselFiles, userId, caption }: CarouselPreviewProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
+  const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
   // Debug log
   console.log("CarouselPreview received:", {
@@ -78,7 +79,7 @@ export function CarouselPreview({ carouselFiles, userId, caption }: CarouselPrev
       <div className="w-full h-full">
         {isVideo ? (
           <video
-            src={`http://localhost:8000/media/${userId}/${encodeURIComponent(currentFile)}`}
+            src={`${backendUrl}/media/${userId}/${encodeURIComponent(currentFile)}`}
             className="w-full h-full object-cover"
             controls
             muted
@@ -93,12 +94,12 @@ export function CarouselPreview({ carouselFiles, userId, caption }: CarouselPrev
               })
             }}
           >
-            <source src={`http://localhost:8000/media/${userId}/${encodeURIComponent(currentFile)}`} type="video/mp4" />
+            <source src={`${backendUrl}/media/${userId}/${encodeURIComponent(currentFile)}`} type="video/mp4" />
             Your browser does not support the video tag.
           </video>
         ) : (
           <img
-            src={`http://localhost:8000/media/${userId}/${encodeURIComponent(currentFile)}`}
+            src={`${backendUrl}/media/${userId}/${encodeURIComponent(currentFile)}`}
             alt={caption || `Carousel item ${currentIndex + 1}`}
             className="w-full h-full object-cover"
             onError={(e) => {

@@ -30,8 +30,9 @@ export function MediaPreview({ filePath, thumbnailPath, isVideo, userId, caption
   const thumbnailFilename = thumbnailPath || ''
   
   // Build media URLs
-  const mediaUrl = `http://localhost:8000/media/${userId}/${encodeURIComponent(filename)}`
-  const thumbnailUrl = thumbnailPath ? `http://localhost:8000/media/${userId}/${encodeURIComponent(thumbnailFilename)}` : null
+  const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+  const mediaUrl = `${backendUrl}/media/${userId}/${encodeURIComponent(filename)}`
+  const thumbnailUrl = thumbnailPath ? `${backendUrl}/media/${userId}/${encodeURIComponent(thumbnailFilename)}` : null
 
   if (isVideo) {
     return (

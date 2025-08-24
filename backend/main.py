@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -28,7 +28,13 @@ app = FastAPI(title="Dumpstr API", version="1.0.0")
 # Configure CORS for Next.js frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001"],
+    allow_origins=[
+        "http://localhost:3000", 
+        "http://localhost:3001",
+        "https://instascrape.vercel.app",
+        "https://instascrape-*.vercel.app",  # For preview deployments
+        "https://*.vercel.app"  # Fallback for any Vercel domain
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -78,13 +84,15 @@ def convert_json_to_netscape_cookies(json_path: str, netscape_path: str):
 def load_instagram_cookies():
     """Load Instagram cookies for yt-dlp if available"""
     # Check for Netscape format cookies first (preferred by yt-dlp)
-    netscape_cookies_path = "backend/instagram_cookies.txt"
+    # Use paths relative to backend directory when running in container
+    backend_dir = Path(__file__).parent  # Gets the backend directory
+    netscape_cookies_path = str(backend_dir / "instagram_cookies.txt")
     if os.path.exists(netscape_cookies_path):
         print("Found Instagram cookies (Netscape format)")
         return netscape_cookies_path
     
     # Only convert JSON if Netscape doesn't exist
-    session_cookies_path = "backend/session_cookies.json"
+    session_cookies_path = str(backend_dir / "session_cookies.json")
     if os.path.exists(session_cookies_path):
         try:
             # Validate that we have the essential sessionid cookie
@@ -434,7 +442,8 @@ async def download_content(request: DownloadRequest):
                     # Mark session as invalid in status file
                     try:
                         import json
-                        status_file = "backend/session_status.json"
+                        backend_dir = Path(__file__).parent
+                        status_file = str(backend_dir / "session_status.json")
                         status_data = {
                             "last_validation": datetime.datetime.now().isoformat(),
                             "is_valid": False,
@@ -705,15 +714,22 @@ async def validate_session(request: dict):
         )
 
 @app.post("/upload-cookies")
-async def upload_cookies(cookies_data: dict):
+async def upload_cookies(request: Request):
     """Receive cookies from frontend and save them"""
     try:
         backend_dir = Path(__file__).parent
         
+        # Get the raw JSON content from the request
+        body = await request.body()
+        content = body.decode('utf-8')
+        
+        # Parse the JSON to validate it and get the data
+        cookies_data = json.loads(content)
+        
         # Save session cookies
         cookies_path = backend_dir / "session_cookies.json"
         with open(cookies_path, 'w', encoding='utf-8') as f:
-            json.dump(cookies_data, f, indent=2)
+            f.write(content)  # Write the original JSON string directly
         
         # Update session status
         status_path = backend_dir / "session_status.json"

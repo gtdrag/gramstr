@@ -17,6 +17,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy backend code
 COPY backend/ ./backend/
 
+# Create downloads directory structure
+RUN mkdir -p downloads
+
 # Expose port (Fly.io uses 8080)
 EXPOSE 8080
 
