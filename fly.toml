@@ -1,5 +1,5 @@
 # Fly.io configuration for Dumpstr backend
-app = "dumpstr-backend"
+app = "instascrape"
 primary_region = "lax"
 
 [build]
