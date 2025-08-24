@@ -41,10 +41,15 @@ app.add_middleware(
 )
 
 # yt-dlp configuration
-def get_ytdlp_options(output_dir: str):
-    """Get yt-dlp options for Instagram downloads"""
+def get_ytdlp_options(output_dir: str, download_id: str = None):
+    """Get yt-dlp options for Instagram downloads with controlled naming"""
+    # Use a unique ID for this download session to ensure we can find our files
+    if not download_id:
+        download_id = str(uuid.uuid4())[:8]
+    
     return {
-        'outtmpl': f'{output_dir}/%(title)s.%(ext)s',
+        # Use our download ID as prefix to ensure unique, findable files
+        'outtmpl': f'{output_dir}/{download_id}_%(title)s.%(ext)s',
         'format': 'best/worst',  # Accept any available format
         'writeinfojson': True,  # Save metadata
         'writethumbnail': True,  # Save thumbnail
@@ -176,8 +181,12 @@ async def download_content(request: DownloadRequest):
         download_dir = DOWNLOADS_DIR / request.user_id
         download_dir.mkdir(parents=True, exist_ok=True)
         
-        # Configure yt-dlp options
-        ydl_opts = get_ytdlp_options(str(download_dir))
+        # Generate unique download ID for this session
+        download_id = str(uuid.uuid4())[:8]
+        print(f"Using download ID: {download_id}")
+        
+        # Configure yt-dlp options with our controlled naming
+        ydl_opts = get_ytdlp_options(str(download_dir), download_id)
         
         # Check if this is a Stories URL and enable cookies if available
         is_story = is_stories_url(request.url)
@@ -236,34 +245,38 @@ async def download_content(request: DownloadRequest):
                 if not info:
                     info = ydl.extract_info(request.url, download=False)
                 
-                # Find the actual downloaded files
+                # Find the actual downloaded files using our download ID
                 content_title = info.get('title', 'content') if info else 'content'
                 user_download_dir = DOWNLOADS_DIR / request.user_id
                 
-                # Look for the actual downloaded files
+                # Look for files with our download ID prefix
                 downloaded_files = []
                 
-                content_title = info.get('title', 'content')
-                print(f"Looking for files with title: {content_title}")
+                print(f"Looking for files with download ID: {download_id}")
                 
-                # Collect all files first
-                for file_path in user_download_dir.glob("*"):
+                # Collect files with our download ID
+                for file_path in user_download_dir.glob(f"{download_id}_*"):
                     if file_path.is_file():
                         filename = file_path.name
-                        print(f"Found file: {filename}")
+                        print(f"Found file with our ID: {filename}")
                         downloaded_files.append(file_path)
                 
-                # Find the most recent files (yt-dlp just downloaded them)
+                # Process downloaded files with our ID - no more guessing!
                 if downloaded_files:
-                    # Sort by modification time, newest first
-                    downloaded_files.sort(key=lambda x: x.stat().st_mtime, reverse=True)
-                    
                     video_file = None
                     image_file = None
                     thumbnail_file = None
                     
+                    # Since all files have our download ID, we know they're ours
+                    # Just categorize them by type
+                    media_files = [f for f in downloaded_files 
+                                  if f.suffix.lower() in ['.mp4', '.webm', '.mkv', '.avi', '.mov', 
+                                                         '.jpg', '.jpeg', '.png', '.webp']]
+                    
+                    files_to_check = media_files
+                    
                     # Process files to find the correct video/image and its thumbnail
-                    for file_path in downloaded_files:
+                    for file_path in files_to_check:
                         filename = file_path.name
                         
                         # Video files
@@ -274,7 +287,7 @@ async def download_content(request: DownloadRequest):
                                 
                                 # Look for its corresponding thumbnail with similar name
                                 base_name = file_path.stem
-                                for thumb_candidate in downloaded_files:
+                                for thumb_candidate in files_to_check:
                                     if (thumb_candidate.suffix.lower() in ['.jpg', '.jpeg', '.png', '.webp'] and
                                         base_name in thumb_candidate.stem):
                                         thumbnail_file = str(thumb_candidate)
@@ -293,6 +306,27 @@ async def download_content(request: DownloadRequest):
                 main_file = video_file if is_video else image_file
                 
                 print(f"Final decision: is_video={is_video}, main_file={main_file}, thumbnail={thumbnail_file}")
+                
+                # Clean up filenames by removing our download ID prefix
+                cleaned_files = {}
+                for file_path in downloaded_files:
+                    if file_path and Path(file_path).exists():
+                        old_path = Path(file_path)
+                        # Remove the download ID prefix from the filename
+                        new_name = old_path.name.replace(f"{download_id}_", "", 1)
+                        new_path = old_path.parent / new_name
+                        
+                        # Rename the file
+                        if old_path != new_path:
+                            old_path.rename(new_path)
+                            cleaned_files[str(file_path)] = str(new_path)
+                            print(f"Renamed: {old_path.name} -> {new_name}")
+                
+                # Update our file references with cleaned names
+                if main_file and main_file in cleaned_files:
+                    main_file = cleaned_files[main_file]
+                if thumbnail_file and thumbnail_file in cleaned_files:
+                    thumbnail_file = cleaned_files[thumbnail_file]
                 
                 # 🎠 Smart carousel detection: Check if we might have missed carousel content
                 is_carousel = False
