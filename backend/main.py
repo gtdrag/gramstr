@@ -704,6 +704,55 @@ async def validate_session(request: dict):
             detail=f"Session validation failed: {str(e)}"
         )
 
+@app.post("/upload-cookies")
+async def upload_cookies(cookies_data: dict):
+    """Receive cookies from frontend and save them"""
+    try:
+        backend_dir = Path(__file__).parent
+        
+        # Save session cookies
+        cookies_path = backend_dir / "session_cookies.json"
+        with open(cookies_path, 'w', encoding='utf-8') as f:
+            json.dump(cookies_data, f, indent=2)
+        
+        # Update session status
+        status_path = backend_dir / "session_status.json"
+        status_data = {
+            "last_validation": datetime.datetime.now().isoformat(),
+            "is_valid": True,
+            "last_error": None
+        }
+        with open(status_path, 'w', encoding='utf-8') as f:
+            json.dump(status_data, f, indent=2)
+        
+        # Convert to netscape format for yt-dlp
+        try:
+            cookies_netscape_path = str(backend_dir / "instagram_cookies.txt")
+            convert_json_to_netscape_cookies(str(cookies_path), cookies_netscape_path)
+            print(f"Converted cookies to Netscape format: {cookies_netscape_path}")
+        except Exception as e:
+            print(f"Warning: Could not convert cookies to Netscape format: {e}")
+        
+        # Check for sessionid for Stories support
+        has_session_id = any(
+            cookie.get('name') == 'sessionid' 
+            for cookie in cookies_data if isinstance(cookie, dict)
+        )
+        
+        return {
+            "success": True,
+            "message": "Cookies uploaded successfully to backend",
+            "stories_supported": has_session_id,
+            "cookies_count": len(cookies_data) if isinstance(cookies_data, list) else 0
+        }
+        
+    except Exception as e:
+        print(f"Cookie upload error: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to upload cookies: {str(e)}"
+        )
+
 if __name__ == "__main__":
     print("=== yt-dlp Instagram Downloader Ready ===")
     import uvicorn
