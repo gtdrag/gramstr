@@ -25,14 +25,25 @@ export function MediaPreview({ filePath, thumbnailPath, isVideo, userId, caption
     )
   }
 
-  // filePath and thumbnailPath are now just filenames, not full paths
-  const filename = filePath || ''
-  const thumbnailFilename = thumbnailPath || ''
+  // Check if we have Supabase URLs (they start with http) or just filenames
+  const isSupabaseUrl = filePath?.startsWith('http')
   
-  // Build media URLs
-  const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-  const mediaUrl = `${backendUrl}/media/${userId}/${encodeURIComponent(filename)}`
-  const thumbnailUrl = thumbnailPath ? `${backendUrl}/media/${userId}/${encodeURIComponent(thumbnailFilename)}` : null
+  // Build media URLs - use Supabase URL if available, otherwise backend URL
+  let mediaUrl: string
+  let thumbnailUrl: string | null
+  
+  if (isSupabaseUrl) {
+    // Already have full Supabase URLs
+    mediaUrl = filePath || ''
+    thumbnailUrl = thumbnailPath || null
+  } else {
+    // Legacy: build backend URLs from filenames
+    const filename = filePath || ''
+    const thumbnailFilename = thumbnailPath || ''
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+    mediaUrl = `${backendUrl}/media/${userId}/${encodeURIComponent(filename)}`
+    thumbnailUrl = thumbnailPath ? `${backendUrl}/media/${userId}/${encodeURIComponent(thumbnailFilename)}` : null
+  }
 
   if (isVideo) {
     return (
