@@ -4,7 +4,8 @@ export async function POST() {
   try {
     // Make a test request to Instagram using the Python backend
     // This will attempt a lightweight operation to validate the session
-    const response = await fetch("http://localhost:8000/validate-session", {
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+    const response = await fetch(`${backendUrl}/validate-session`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

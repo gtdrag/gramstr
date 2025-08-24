@@ -24,7 +24,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Call Python backend
-    const pythonResponse = await fetch("http://localhost:8000/download", {
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+    const pythonResponse = await fetch(`${backendUrl}/download`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

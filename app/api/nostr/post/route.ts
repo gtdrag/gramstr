@@ -67,7 +67,8 @@ export async function POST(request: NextRequest) {
       
       for (const file of contentItem.carouselFiles as string[]) {
         try {
-          const localUrl = `http://localhost:8000/media/${userId}/${encodeURIComponent(file)}`
+          const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+          const localUrl = `${backendUrl}/media/${userId}/${encodeURIComponent(file)}`
           const publicUrl = await nostrService.uploadVideoFromUrl(localUrl, file)
           publicUrls.push(publicUrl)
           console.log(`Uploaded ${file} to ${publicUrl}`)
@@ -110,7 +111,8 @@ export async function POST(request: NextRequest) {
       })
     } else {
       // Single media file - upload to get public URL
-      const localUrl = `http://localhost:8000/media/${userId}/${encodeURIComponent(contentItem.filePath || '')}`
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+      const localUrl = `${backendUrl}/media/${userId}/${encodeURIComponent(contentItem.filePath || '')}`
       
       console.log('Uploading media to public storage...')
       let publicUrl: string
