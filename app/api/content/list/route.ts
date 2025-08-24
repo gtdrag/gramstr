@@ -13,6 +13,8 @@ export async function GET(request: NextRequest) {
     }
 
     console.log("LIST API - userId:", userId)
+    console.log("Database URL exists:", !!process.env.DATABASE_URL)
+    console.log("Environment:", process.env.NODE_ENV)
 
     let content
     try {
@@ -23,11 +25,12 @@ export async function GET(request: NextRequest) {
         .orderBy(desc(downloadedContent.downloadedAt))
     } catch (dbError) {
       console.error("Database query error:", dbError)
-      // Return empty array when database is unavailable
+      // Return the actual error for debugging
       return NextResponse.json({
-        success: true,
+        success: false,
         content: [],
-        message: "No content available - database connection issue"
+        error: dbError instanceof Error ? dbError.message : "Database connection failed",
+        message: "Database query failed - check logs for details"
       })
     }
 
