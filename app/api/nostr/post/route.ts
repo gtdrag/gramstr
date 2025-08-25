@@ -67,11 +67,28 @@ export async function POST(request: NextRequest) {
       
       for (const file of contentItem.carouselFiles as string[]) {
         try {
-          const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
-          const localUrl = `${backendUrl}/media/${userId}/${encodeURIComponent(file)}`
-          const publicUrl = await nostrService.uploadVideoFromUrl(localUrl, file)
+          // Check if this is already a Supabase URL or just a filename
+          let sourceUrl: string
+          let filename: string
+          
+          if (file.startsWith('http://') || file.startsWith('https://')) {
+            // Already a Supabase URL, use it directly
+            sourceUrl = file
+            // Extract filename from URL path
+            const urlParts = file.split('/')
+            filename = urlParts[urlParts.length - 1] || 'media'
+            console.log(`Using Supabase URL directly: ${sourceUrl}`)
+          } else {
+            // Just a filename, construct backend URL
+            const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+            sourceUrl = `${backendUrl}/media/${userId}/${encodeURIComponent(file)}`
+            filename = file
+            console.log(`Constructing backend URL: ${sourceUrl}`)
+          }
+          
+          const publicUrl = await nostrService.uploadVideoFromUrl(sourceUrl, filename)
           publicUrls.push(publicUrl)
-          console.log(`Uploaded ${file} to ${publicUrl}`)
+          console.log(`Uploaded ${filename} to ${publicUrl}`)
         } catch (error) {
           console.error(`Failed to upload ${file}:`, error)
           // Continue with other files even if one fails
@@ -111,13 +128,29 @@ export async function POST(request: NextRequest) {
       })
     } else {
       // Single media file - upload to get public URL
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
-      const localUrl = `${backendUrl}/media/${userId}/${encodeURIComponent(contentItem.filePath || '')}`
+      let sourceUrl: string
+      let filename: string
+      
+      // Check if filePath is already a Supabase URL or just a filename
+      if (contentItem.filePath && (contentItem.filePath.startsWith('http://') || contentItem.filePath.startsWith('https://'))) {
+        // Already a Supabase URL, use it directly
+        sourceUrl = contentItem.filePath
+        // Extract filename from URL path
+        const urlParts = contentItem.filePath.split('/')
+        filename = urlParts[urlParts.length - 1] || 'media'
+        console.log(`Using Supabase URL directly: ${sourceUrl}`)
+      } else {
+        // Just a filename, construct backend URL
+        const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+        sourceUrl = `${backendUrl}/media/${userId}/${encodeURIComponent(contentItem.filePath || '')}`
+        filename = contentItem.filePath || 'media'
+        console.log(`Constructing backend URL: ${sourceUrl}`)
+      }
       
       console.log('Uploading media to public storage...')
       let publicUrl: string
       try {
-        publicUrl = await nostrService.uploadVideoFromUrl(localUrl, contentItem.filePath || 'media')
+        publicUrl = await nostrService.uploadVideoFromUrl(sourceUrl, filename)
         console.log(`Uploaded to public URL: ${publicUrl}`)
       } catch (error) {
         console.error('Failed to upload media:', error)
@@ -129,7 +162,7 @@ export async function POST(request: NextRequest) {
       // Publish to NOSTR with public URL
       const noteId = await nostrService.publishInstagramVideo(
         publicUrl,
-        contentItem.filePath || 'media.mp4',
+        filename,
         contentItem.caption || 'Shared from Dumpstr',
         contentItem.originalUrl
       )
