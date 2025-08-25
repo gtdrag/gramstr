@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
       const files = await response.json()
       
       // Transform to match frontend format
-      const content = files.map((file: any) => ({
+      const content = files.map((file: { name: string; isVideo: boolean }) => ({
         id: file.name,
         userId: userId,
         originalUrl: "",

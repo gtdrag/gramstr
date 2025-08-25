@@ -23,16 +23,17 @@ export async function GET(request: NextRequest) {
         .from(downloadedContent)
         .where(eq(downloadedContent.userId, userId))
         .orderBy(desc(downloadedContent.downloadedAt))
-    } catch (dbError: any) {
+    } catch (dbError) {
       console.error("Database query error:", dbError)
       // Return more detailed error for debugging
+      const error = dbError as any
       const errorDetails = {
-        message: dbError?.message || "Unknown error",
-        code: dbError?.code,
-        severity: dbError?.severity,
-        detail: dbError?.detail,
-        hint: dbError?.hint,
-        stack: process.env.NODE_ENV === 'development' ? dbError?.stack : undefined
+        message: error?.message || "Unknown error",
+        code: error?.code,
+        severity: error?.severity,
+        detail: error?.detail,
+        hint: error?.hint,
+        stack: process.env.NODE_ENV === 'development' ? error?.stack : undefined
       }
       
       return NextResponse.json({

@@ -14,15 +14,15 @@ export async function GET() {
     try {
       basicTest = await db.execute(sql`SELECT 1 as test`)
       console.log("TEST-DB: Basic connection successful")
-    } catch (e: any) {
+    } catch (e) {
       console.error("TEST-DB: Basic connection failed:", e)
       return NextResponse.json({
         test: "basic_connection",
         success: false,
         error: {
-          message: e?.message,
-          code: e?.code,
-          detail: e?.detail
+          message: (e as any)?.message,
+          code: (e as any)?.code,
+          detail: (e as any)?.detail
         }
       })
     }
@@ -37,15 +37,15 @@ export async function GET() {
         )
       `)
       console.log("TEST-DB: Table check successful")
-    } catch (e: any) {
+    } catch (e) {
       console.error("TEST-DB: Table check failed:", e)
       return NextResponse.json({
         test: "table_exists",
         success: false,
         error: {
-          message: e?.message,
-          code: e?.code,
-          detail: e?.detail
+          message: (e as any)?.message,
+          code: (e as any)?.code,
+          detail: (e as any)?.detail
         }
       })
     }
@@ -57,15 +57,15 @@ export async function GET() {
         SELECT COUNT(*) as count FROM downloaded_content
       `)
       console.log("TEST-DB: Row count successful")
-    } catch (e: any) {
+    } catch (e) {
       console.error("TEST-DB: Row count failed:", e)
       return NextResponse.json({
         test: "row_count",
         success: false,
         error: {
-          message: e?.message,
-          code: e?.code,
-          detail: e?.detail
+          message: (e as any)?.message,
+          code: (e as any)?.code,
+          detail: (e as any)?.detail
         }
       })
     }
@@ -80,13 +80,13 @@ export async function GET() {
       }
     })
 
-  } catch (error: any) {
+  } catch (error) {
     console.error("TEST-DB: Unexpected error:", error)
     return NextResponse.json({
       success: false,
       error: {
-        message: error?.message || "Unknown error",
-        stack: process.env.NODE_ENV === 'development' ? error?.stack : undefined
+        message: (error as any)?.message || "Unknown error",
+        stack: process.env.NODE_ENV === 'development' ? (error as any)?.stack : undefined
       }
     }, { status: 500 })
   }
