@@ -185,9 +185,6 @@ async def download_content(request: DownloadRequest):
         download_id = str(uuid.uuid4())[:8]
         print(f"Using download ID: {download_id}")
         
-        # Configure yt-dlp options with our controlled naming
-        ydl_opts = get_ytdlp_options(str(download_dir), download_id)
-        
         # Check if this is a Stories URL and enable cookies if available
         is_story = is_stories_url(request.url)
         cookies_path = load_instagram_cookies()
@@ -198,12 +195,15 @@ async def download_content(request: DownloadRequest):
                 detail="Instagram Stories require authentication. Please run the cookie extraction script first."
             )
         
-        # Use cookies whenever available for better access
+        # Configure yt-dlp options with our controlled naming
+        ydl_opts = get_ytdlp_options(str(download_dir), download_id)
+        
+        # Use cookies whenever available for better access (BEFORE any yt-dlp usage!)
         if cookies_path:
             ydl_opts['cookiefile'] = cookies_path
-            print(f"Using Instagram cookies for {'Stories' if is_story else 'authenticated'} download")
+            print(f"Using Instagram cookies for {'Stories' if is_story else 'authenticated'} download - this enables caption extraction!")
         else:
-            print("Using yt-dlp without cookies (public posts only)")
+            print("WARNING: No cookies available - captions may not be extracted!")
         
         # Try yt-dlp first (faster and reliable)
         carousel_caption = None  # Store caption in case we need it for gallery-dl fallback
@@ -219,31 +219,22 @@ async def download_content(request: DownloadRequest):
                 print(f"Failed to extract info: {e}")
                 info = None
                 
-                # Try to read the info.json file that yt-dlp might have saved
-                import glob
-                info_files = glob.glob(f"downloads/{request.user_id}/*.info.json")
-                if info_files:
-                    # Sort by modification time and get the most recent
-                    latest_info = max(info_files, key=os.path.getmtime)
-                    try:
-                        import json
-                        with open(latest_info, 'r') as f:
-                            saved_info = json.load(f)
-                            carousel_caption = saved_info.get('description', '') or saved_info.get('title', '')
-                            print(f"Recovered caption from info.json: {carousel_caption[:100]}..." if len(carousel_caption) > 100 else f"Recovered caption from info.json: {carousel_caption}")
-                    except Exception as info_error:
-                        print(f"Failed to read info.json: {info_error}")
+                # Don't try to read old info.json files - they contain wrong metadata!
+                # The caption should come from the current download only
+                print("Info extraction failed, will use URL-based metadata only")
         
         # Now try to download
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             try:
-                # Download using the URL (info extraction happens again internally)
-                ydl.download([request.url])
+                # Download using the URL (this also extracts info)
+                download_info = ydl.extract_info(request.url, download=True)
                 print("Download completed successfully")
                 
-                # Re-extract info if needed (download was successful)
-                if not info:
-                    info = ydl.extract_info(request.url, download=False)
+                # Use download_info if we didn't get info earlier
+                if not info and download_info:
+                    info = download_info
+                    carousel_caption = info.get('description', '') or info.get('title', '')
+                    print(f"Got caption from download: {carousel_caption[:100]}..." if len(carousel_caption) > 100 else f"Got caption from download: {carousel_caption}")
                 
                 # Find the actual downloaded files using our download ID
                 content_title = info.get('title', 'content') if info else 'content'
@@ -388,12 +379,28 @@ async def download_content(request: DownloadRequest):
                         print(f"❌ Gallery-dl error: {e}")
                 
                 # Extract metadata from info with proper file names
+                # Handle case where info might be None (extraction failed)
+                if info:
+                    post_id = info.get('id', str(uuid.uuid4()))
+                    # Always prefer actual caption from Instagram
+                    caption = info.get('description', '') or info.get('title', '')
+                    if not caption:
+                        # Only use generic text as last resort
+                        caption = f"Instagram post"
+                    likes = info.get('like_count', 0) or 0
+                else:
+                    # Use minimal metadata when extraction completely failed
+                    post_id = str(uuid.uuid4())
+                    caption = ""  # Empty caption is better than generic text
+                    likes = 0
+                    print("No metadata available - using empty caption")
+                
                 metadata = ContentMetadata(
-                    id=info.get('id', str(uuid.uuid4())),
+                    id=post_id,
                     url=request.url,
-                    caption=info.get('description', '') or info.get('title', ''),
+                    caption=caption,
                     date=datetime.datetime.now().isoformat(),
-                    likes=info.get('like_count', 0) or 0,
+                    likes=likes,
                     is_video=is_video,
                     file_path=Path(main_file).name if main_file else None,  # Store just filename for frontend
                     thumbnail_path=Path(thumbnail_file).name if thumbnail_file else None,  # Store just filename
@@ -411,10 +418,56 @@ async def download_content(request: DownloadRequest):
                 error_str = str(e)
                 print(f"yt-dlp download failed: {error_str}")
                 
-                # Check if this might be a carousel that yt-dlp can't handle
-                if "No video formats found" in error_str and not is_story:
-                    print("🎠 yt-dlp failed - might be a carousel, trying gallery-dl...")
-                    print(f"🎠 Caption available for carousel: {carousel_caption[:50] if carousel_caption else 'NO CAPTION FOUND'}")
+                # Check if this might be a carousel/gallery that yt-dlp can't handle
+                # These errors are common for gallery posts
+                if (("No video formats found" in error_str or 
+                     "empty media response" in error_str.lower() or
+                     "instagram api is not granting access" in error_str.lower()) 
+                    and not is_story):
+                    print("🎠 yt-dlp failed - might be a carousel or image post, trying gallery-dl...")
+                    
+                    # Always try to get metadata for gallery posts using yt-dlp
+                    carousel_likes = 0
+                    print("🔍 Attempting metadata extraction for gallery/carousel post...")
+                    try:
+                        # Create a new yt-dlp instance specifically for metadata
+                        # Use different options that might work better for galleries
+                        metadata_opts = {
+                            'quiet': False,  # Show what's happening
+                            'extract_flat': False,  # Full extraction
+                            'skip_download': True,  # Only get metadata
+                            'ignoreerrors': True,  # Continue even if download would fail
+                            'no_warnings': False,
+                        }
+                        
+                        # Add cookies if available
+                        if cookies_path:
+                            metadata_opts['cookiefile'] = cookies_path
+                        
+                        with yt_dlp.YoutubeDL(metadata_opts) as ydl_meta:
+                            # Force metadata extraction even if download would fail
+                            print(f"Extracting metadata from: {request.url}")
+                            info = ydl_meta.extract_info(request.url, download=False)
+                            
+                            if info:
+                                # Instagram stores caption in description field
+                                carousel_caption = info.get('description', '') or info.get('title', '')
+                                carousel_likes = info.get('like_count', 0) or 0
+                                
+                                # Also check for entries (carousel items)
+                                if 'entries' in info and info['entries']:
+                                    print(f"📸 Found carousel with {len(info['entries'])} items")
+                                
+                                print(f"✅ Metadata extracted! Caption: {carousel_caption[:100] if carousel_caption else 'Empty'}")
+                                print(f"👍 Likes: {carousel_likes}")
+                            else:
+                                print("⚠️ No metadata returned from yt-dlp")
+                                
+                    except Exception as meta_err:
+                        print(f"❌ Metadata extraction failed: {meta_err}")
+                        # Even if metadata fails, we'll still try gallery-dl for the media
+                    
+                    print(f"🎠 Caption: {carousel_caption[:50] if carousel_caption else 'NO CAPTION'}, Likes: {carousel_likes}")
                     
                     if cookies_path:
                         try:
@@ -453,17 +506,27 @@ async def download_content(request: DownloadRequest):
                                                 pass
                                     
                                     # Create metadata
+                                    # Check if it's actually a carousel (multiple files) or single post
+                                    actual_is_carousel = len(carousel_files) > 1
+                                    
+                                    # Always prefer real caption from Instagram
+                                    if carousel_caption:
+                                        actual_caption = carousel_caption
+                                    else:
+                                        # Empty caption is better than generic text
+                                        actual_caption = ""
+                                    
                                     metadata = ContentMetadata(
                                         id=str(uuid.uuid4()),
                                         url=request.url,
-                                        caption=carousel_caption or "Instagram carousel post",
+                                        caption=actual_caption,
                                         date=datetime.datetime.now().isoformat(),
-                                        likes=0,
-                                        is_video=False,  # Carousels are mixed media
+                                        likes=carousel_likes,  # Use extracted likes from metadata
+                                        is_video=False,  # Single images or mixed media
                                         file_path=carousel_files[0].name if carousel_files else None,
                                         thumbnail_path=None,
-                                        is_carousel=True,
-                                        carousel_files=[f.name for f in carousel_files]
+                                        is_carousel=actual_is_carousel,
+                                        carousel_files=[f.name for f in carousel_files] if actual_is_carousel else None
                                     )
                                     
                                     print(f"🎠 Returning carousel with {len(carousel_files)} files: {[f.name for f in carousel_files]}")
@@ -477,10 +540,16 @@ async def download_content(request: DownloadRequest):
                         except Exception as gallery_error:
                             print(f"Gallery-dl fallback error: {gallery_error}")
                 
+                # Check if this might be a gallery/carousel post FIRST
+                # Gallery posts often fail with "empty media response" but gallery-dl can still work
+                is_potential_gallery = ("empty media response" in error_str.lower() or 
+                                      "no video formats found" in error_str.lower() or
+                                      "instagram api is not granting access" in error_str.lower())
+                
                 # Check for common session expiration errors
-                # ONLY mark session invalid if we actually have cookies that failed
+                # ONLY mark session invalid if we actually have cookies that failed AND it's not a gallery
                 cookies_path = load_instagram_cookies()
-                if cookies_path and any(phrase in error_str.lower() for phrase in [
+                if not is_potential_gallery and cookies_path and any(phrase in error_str.lower() for phrase in [
                     "you need to log in",
                     "login required", 
                     "authentication required",
@@ -488,8 +557,6 @@ async def download_content(request: DownloadRequest):
                     "invalid session",
                     "unauthorized access",
                     "this content is unreachable",
-                    "use --cookies-from-browser",
-                    "cookies for the authentication",
                     "content is not available",
                     "login to access"
                 ]):
@@ -513,6 +580,8 @@ async def download_content(request: DownloadRequest):
                         status_code=401,
                         detail="Session expired or authentication invalid. Please refresh your Instagram cookies."
                     )
+                elif is_potential_gallery:
+                    print("🎠 Detected potential gallery post error - will continue to try gallery-dl fallback")
                 
                 raise HTTPException(
                     status_code=500, 
@@ -592,10 +661,11 @@ async def download_carousel_content(request: DownloadRequest):
         is_video = main_file.suffix.lower() in ['.mp4', '.webm', '.mkv', '.avi', '.mov']
         
         # Create metadata
+        # Empty caption is better than generic text when we can't extract the real one
         metadata = ContentMetadata(
             id=str(uuid.uuid4()),
             url=request.url,
-            caption="Gallery carousel post",
+            caption="",  # Empty - frontend can handle this better
             date=datetime.datetime.now().isoformat(),
             likes=0,
             is_video=is_video,
