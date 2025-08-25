@@ -24,7 +24,12 @@ const dbSchema = {
 }
 
 function initializeDb(url: string) {
-  const client = postgres(url, { prepare: false })
+  // In production, Supabase requires SSL
+  const isProduction = process.env.NODE_ENV === 'production'
+  const client = postgres(url, { 
+    prepare: false,
+    ssl: isProduction ? 'require' : false
+  })
   return drizzlePostgres(client, { schema: dbSchema })
 }
 
