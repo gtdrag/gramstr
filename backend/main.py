@@ -258,15 +258,25 @@ async def download_content(request: DownloadRequest):
                     image_file = None
                     thumbnail_file = None
                     
-                    # Since all files have our download ID, we know they're ours
-                    # Just categorize them by type
-                    media_files = [f for f in downloaded_files 
+                    # CRITICAL: Only look at files with OUR download ID to avoid mixing stories!
+                    # Filter to ONLY files that start with our download ID
+                    our_files = [f for f in downloaded_files 
+                                if f.name.startswith(f"{download_id}_")]
+                    
+                    # Now filter to media files from our download
+                    media_files = [f for f in our_files 
                                   if f.suffix.lower() in ['.mp4', '.webm', '.mkv', '.avi', '.mov', 
                                                          '.jpg', '.jpeg', '.png', '.webp']]
                     
                     files_to_check = media_files
                     
+                    print(f"Found {len(downloaded_files)} total files, {len(our_files)} with our ID, {len(media_files)} media files")
+                    
                     # Process files to find the correct video/image and its thumbnail
+                    print(f"Processing {len(files_to_check)} files for matching...")
+                    for f in files_to_check:
+                        print(f"  - {f.name} (stem: '{f.stem}')")
+                    
                     for file_path in files_to_check:
                         filename = file_path.name
                         
@@ -276,14 +286,32 @@ async def download_content(request: DownloadRequest):
                                 video_file = str(file_path)
                                 print(f"Selected as VIDEO: {filename}")
                                 
-                                # Look for its corresponding thumbnail with EXACT same base name
+                                # Look for its corresponding thumbnail
                                 base_name = file_path.stem
+                                print(f"Looking for thumbnail with stem matching: '{base_name}'")
+                                
+                                # Try exact match first
                                 for thumb_candidate in files_to_check:
                                     if (thumb_candidate.suffix.lower() in ['.jpg', '.jpeg', '.png', '.webp'] and
-                                        thumb_candidate.stem == base_name):  # EXACT match, not substring!
+                                        thumb_candidate.stem == base_name):  # EXACT match
                                         thumbnail_file = str(thumb_candidate)
-                                        print(f"Found matching THUMBNAIL: {thumb_candidate.name}")
+                                        print(f"Found EXACT MATCH thumbnail: {thumb_candidate.name}")
                                         break
+                                
+                                # If no exact match, look for thumbnails from same download
+                                if not thumbnail_file:
+                                    print(f"No exact match found, looking for any thumbnail from this download...")
+                                    # Just take the first image file from this download batch
+                                    # Since we've already filtered to only our download ID, this should be safe
+                                    for thumb_candidate in files_to_check:
+                                        if (thumb_candidate.suffix.lower() in ['.jpg', '.jpeg', '.png', '.webp'] and
+                                            thumb_candidate != file_path):  # Don't match the video itself
+                                            thumbnail_file = str(thumb_candidate)
+                                            print(f"Using thumbnail from same download: {thumb_candidate.name}")
+                                            break
+                                    
+                                    if not thumbnail_file:
+                                        print(f"WARNING: No thumbnail found for video {filename}")
                         
                         # Image files (only if no video found)
                         elif (video_file is None and 
