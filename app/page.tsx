@@ -48,9 +48,6 @@ export default function Page() {
       {/* Connection Status Bar */}
       <ConnectionStatus onConnectClick={() => setShowAlbyModal(true)} />
       
-      {/* Floating Connect Button */}
-      <FloatingConnectButton onClick={() => setShowAlbyModal(true)} />
-      
       {/* Alby Modal */}
       <AlbyConnectModal 
         open={showAlbyModal} 

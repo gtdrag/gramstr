@@ -42,31 +42,8 @@ export function UnifiedAuthSection({
         <CollapsibleTrigger asChild>
           <Button
             variant="ghost"
-            className={`w-full justify-between ${
-              hasFullAccess 
-                ? 'text-green-400 hover:text-green-300' 
-                : !isConnected
-                ? 'text-yellow-400 hover:text-yellow-300'
-                : 'text-gray-400 hover:text-gray-300'
-            }`}
+            className="w-full justify-center text-gray-400 hover:text-gray-300"
           >
-            <div className="flex items-center gap-2">
-              {hasFullAccess ? (
-                <>
-                  <Check className="w-4 h-4" />
-                  <span>Full Access Enabled</span>
-                </>
-              ) : (
-                <>
-                  <Unlock className="w-4 h-4" />
-                  <span>
-                    {!isConnected 
-                      ? 'Connect Alby to Start' 
-                      : 'Enable Full Access'}
-                  </span>
-                </>
-              )}
-            </div>
             {showAuthSection ? (
               <ChevronUp className="w-4 h-4" />
             ) : (
