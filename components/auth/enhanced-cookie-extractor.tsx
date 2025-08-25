@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -36,7 +36,7 @@ export function EnhancedCookieExtractor({ onSuccess }: EnhancedCookieExtractorPr
   const [isValidating, setIsValidating] = useState(false)
   const [validationResult, setValidationResult] = useState<{valid: boolean, message: string, details?: string[]} | null>(null)
 
-  const validateCookies = () => {
+  const validateCookies = useCallback(() => {
     const requiredCookies = cookies.filter(c => c.required)
     const missingRequired = requiredCookies.filter(c => !c.value.trim())
     const validCookies = cookies.filter(c => c.value.trim().length > 0)
@@ -64,12 +64,12 @@ export function EnhancedCookieExtractor({ onSuccess }: EnhancedCookieExtractorPr
       message: `All required cookies present! Found ${validCookies.length} cookies total.`,
       details: validCookies.map(c => `✓ ${c.name}`)
     }
-  }
+  }, [cookies])
 
   useEffect(() => {
     const result = validateCookies()
     setValidationResult(result)
-  }, [cookies])
+  }, [cookies, validateCookies])
 
   const updateCookie = (name: string, value: string) => {
     setCookies(prev => prev.map(cookie => 

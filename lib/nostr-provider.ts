@@ -24,7 +24,12 @@ export interface NostrEvent {
 }
 
 declare global {
-  interface Window extends NostrWindow {}
+  interface Window {
+    nostr?: {
+      getPublicKey(): Promise<string>
+      signEvent(event: NostrEvent): Promise<NostrEvent>
+    }
+  }
 }
 
 export class NostrProvider {
