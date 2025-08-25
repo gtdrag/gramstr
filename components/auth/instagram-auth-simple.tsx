@@ -14,11 +14,13 @@ interface InstagramAuthSimpleProps {
 
 export function InstagramAuthSimple({ onAuthSuccess }: InstagramAuthSimpleProps) {
   const [cookies, setCookies] = useState({
-    sessionid: "",
-    ds_user_id: "",
     csrftoken: "",
+    ds_user_id: "",
+    sessionid: "",
+    ig_did: "",
     mid: "",
-    ig_did: ""
+    ig_nrcb: "",
+    rur: ""
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showGuide, setShowGuide] = useState(false)
@@ -33,16 +35,19 @@ export function InstagramAuthSimple({ onAuthSuccess }: InstagramAuthSimpleProps)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Check if required fields are filled
-    if (!cookies.sessionid || !cookies.ds_user_id) {
-      toast.error("Please fill in at least sessionid and ds_user_id")
+    // Check if ALL required fields are filled (as per original working system)
+    const requiredFields = ['csrftoken', 'ds_user_id', 'sessionid', 'ig_did', 'mid', 'ig_nrcb', 'rur']
+    const missingFields = requiredFields.filter(field => !cookies[field as keyof typeof cookies])
+    
+    if (missingFields.length > 0) {
+      toast.error(`Missing required fields: ${missingFields.join(', ')}`)
       return
     }
 
     setIsSubmitting(true)
 
     try {
-      // Convert form data to cookie format
+      // Convert form data to cookie format that backend expects
       const cookieData = Object.entries(cookies)
         .filter(([_, value]) => value) // Only include non-empty values
         .map(([name, value]) => ({
@@ -51,12 +56,14 @@ export function InstagramAuthSimple({ onAuthSuccess }: InstagramAuthSimpleProps)
           domain: ".instagram.com"
         }))
 
-      const response = await fetch("/api/auth/instagram/validate", {
+      // Create a JSON file blob to send to upload endpoint
+      const jsonBlob = new Blob([JSON.stringify(cookieData)], { type: 'application/json' })
+      const formData = new FormData()
+      formData.append('cookies', jsonBlob, 'cookies.json')
+
+      const response = await fetch("/api/auth/instagram/upload", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ cookies: cookieData })
+        body: formData
       })
 
       const data = await response.json()
@@ -85,59 +92,30 @@ export function InstagramAuthSimple({ onAuthSuccess }: InstagramAuthSimpleProps)
   return (
     <>
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Cookie Input Fields */}
-        <div className="space-y-3">
-          {/* Required fields */}
-          <div>
-            <Label htmlFor="sessionid" className="text-sm text-gray-300">
-              Session ID <span className="text-red-400">*</span>
-            </Label>
-            <Input
-              id="sessionid"
-              type="text"
-              value={cookies.sessionid}
-              onChange={handleInputChange("sessionid")}
-              placeholder="Enter your sessionid cookie"
-              className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-400 mt-1"
-              required
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="ds_user_id" className="text-sm text-gray-300">
-              User ID <span className="text-red-400">*</span>
-            </Label>
-            <Input
-              id="ds_user_id"
-              type="text"
-              value={cookies.ds_user_id}
-              onChange={handleInputChange("ds_user_id")}
-              placeholder="Enter your ds_user_id cookie"
-              className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-400 mt-1"
-              required
-            />
-          </div>
-
-          {/* Optional fields */}
-          <div>
-            <Label htmlFor="csrftoken" className="text-sm text-gray-300">
-              CSRF Token <span className="text-gray-500">(optional)</span>
-            </Label>
-            <Input
-              id="csrftoken"
-              type="text"
-              value={cookies.csrftoken}
-              onChange={handleInputChange("csrftoken")}
-              placeholder="Enter your csrftoken cookie"
-              className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-400 mt-1"
-            />
-          </div>
+        {/* Cookie Input Fields - ALL REQUIRED as per working system */}
+        <div className="space-y-2">
+          {Object.entries(cookies).map(([key, value]) => (
+            <div key={key}>
+              <Label htmlFor={key} className="text-xs text-gray-300">
+                {key} <span className="text-red-400">*</span>
+              </Label>
+              <Input
+                id={key}
+                type="text"
+                value={value}
+                onChange={handleInputChange(key as keyof typeof cookies)}
+                placeholder={`Enter ${key}`}
+                className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-400 mt-1 text-sm h-9"
+                required
+              />
+            </div>
+          ))}
         </div>
 
         {/* Submit Button */}
         <Button
           type="submit"
-          disabled={isSubmitting || !cookies.sessionid || !cookies.ds_user_id}
+          disabled={isSubmitting || Object.values(cookies).some(v => !v)}
           className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50"
         >
           {isSubmitting ? (
@@ -204,11 +182,15 @@ export function InstagramAuthSimple({ onAuthSuccess }: InstagramAuthSimpleProps)
               <div className="flex gap-3">
                 <span className="flex-shrink-0 w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center text-white text-xs">4</span>
                 <div>
-                  <p className="text-sm text-gray-300">Find and copy these cookie values:</p>
+                  <p className="text-sm text-gray-300">Find and copy ALL these cookie values:</p>
                   <ul className="mt-2 space-y-1 text-xs">
-                    <li className="text-gray-400">• <code className="bg-gray-800 px-1 rounded">sessionid</code> (required)</li>
-                    <li className="text-gray-400">• <code className="bg-gray-800 px-1 rounded">ds_user_id</code> (required)</li>
-                    <li className="text-gray-400">• <code className="bg-gray-800 px-1 rounded">csrftoken</code> (optional)</li>
+                    <li className="text-gray-400">• <code className="bg-gray-800 px-1 rounded">csrftoken</code></li>
+                    <li className="text-gray-400">• <code className="bg-gray-800 px-1 rounded">ds_user_id</code></li>
+                    <li className="text-gray-400">• <code className="bg-gray-800 px-1 rounded">sessionid</code></li>
+                    <li className="text-gray-400">• <code className="bg-gray-800 px-1 rounded">ig_did</code></li>
+                    <li className="text-gray-400">• <code className="bg-gray-800 px-1 rounded">mid</code></li>
+                    <li className="text-gray-400">• <code className="bg-gray-800 px-1 rounded">ig_nrcb</code></li>
+                    <li className="text-gray-400">• <code className="bg-gray-800 px-1 rounded">rur</code></li>
                   </ul>
                 </div>
               </div>
