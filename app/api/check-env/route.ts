@@ -11,7 +11,8 @@ export async function GET() {
       urlInfo = {
         protocol: url.protocol,
         port: url.port || "(default)",
-        hostname: url.hostname.substring(0, 20) + "...",
+        hostname: url.hostname,
+        fullHost: url.host,
         pathname: url.pathname,
         hasPassword: !!url.password,
         searchParams: Object.fromEntries(url.searchParams)
