@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Best Practices
+- always write code that is 'future-proof' meaning it should work when the application is scaled; it should work the same in a production environment just as it does locally
+- think about the big picture when fixing bugs; avoid using band-aid type fixes which tend to just mask issues
+
 ## Commands
 
 ### Development

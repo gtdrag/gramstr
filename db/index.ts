@@ -3,8 +3,8 @@ import postgres from "postgres"
 import { customers } from "./schema/customers"
 import { downloadedContent, crossPostHistory, userPlatformCredentials } from "./schema/content"
 
-// Only load .env.local in development
-if (process.env.NODE_ENV === "development") {
+// Load .env.local if DATABASE_URL is not already set
+if (!process.env.DATABASE_URL) {
   const { config } = require("dotenv")
   config({ path: ".env.local" })
 }

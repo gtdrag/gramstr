@@ -23,14 +23,23 @@ export async function GET(request: NextRequest) {
         .from(downloadedContent)
         .where(eq(downloadedContent.userId, userId))
         .orderBy(desc(downloadedContent.downloadedAt))
-    } catch (dbError) {
+    } catch (dbError: any) {
       console.error("Database query error:", dbError)
-      // Return the actual error for debugging
+      // Return more detailed error for debugging
+      const errorDetails = {
+        message: dbError?.message || "Unknown error",
+        code: dbError?.code,
+        severity: dbError?.severity,
+        detail: dbError?.detail,
+        hint: dbError?.hint,
+        stack: process.env.NODE_ENV === 'development' ? dbError?.stack : undefined
+      }
+      
       return NextResponse.json({
         success: false,
         content: [],
-        error: dbError instanceof Error ? dbError.message : "Database connection failed",
-        message: "Database query failed - check logs for details"
+        error: errorDetails,
+        message: "Database query failed - check error details"
       })
     }
 
