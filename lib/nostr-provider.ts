@@ -28,6 +28,7 @@ declare global {
     nostr?: {
       getPublicKey(): Promise<string>
       signEvent(event: NostrEvent): Promise<NostrEvent>
+      getRelays?(): Promise<{ [url: string]: { read: boolean; write: boolean } }>
     }
   }
 }
