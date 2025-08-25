@@ -276,11 +276,11 @@ async def download_content(request: DownloadRequest):
                                 video_file = str(file_path)
                                 print(f"Selected as VIDEO: {filename}")
                                 
-                                # Look for its corresponding thumbnail with similar name
+                                # Look for its corresponding thumbnail with EXACT same base name
                                 base_name = file_path.stem
                                 for thumb_candidate in files_to_check:
                                     if (thumb_candidate.suffix.lower() in ['.jpg', '.jpeg', '.png', '.webp'] and
-                                        base_name in thumb_candidate.stem):
+                                        thumb_candidate.stem == base_name):  # EXACT match, not substring!
                                         thumbnail_file = str(thumb_candidate)
                                         print(f"Found matching THUMBNAIL: {thumb_candidate.name}")
                                         break
