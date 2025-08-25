@@ -55,7 +55,7 @@ export default function Page() {
 
         <div className="text-center space-y-6">
           <h1 className="text-6xl font-bold tracking-tight bg-gradient-to-r from-purple-400 to-purple-600 bg-clip-text text-transparent">
-            DUMPSTR
+            ⚡gramstr
           </h1>
           <p className="text-gray-400 text-xl max-w-2xl mx-auto">
             Download Instagram content and cross-post to NOSTR

@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import { Download, Loader2, Shield, ShieldCheck, Info } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { api } from "@/lib/api-client"
 
 interface DownloadFormProps {
   onDownloadComplete?: () => void
@@ -63,13 +64,7 @@ export function DownloadForm({ onDownloadComplete }: DownloadFormProps) {
     setIsLoading(true)
 
     try {
-      const response = await fetch("/api/content/download", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ url }),
-      })
+      const response = await api.post("/api/content/download", { url })
 
       const data = await response.json()
 
@@ -93,7 +88,7 @@ export function DownloadForm({ onDownloadComplete }: DownloadFormProps) {
       
       // Navigate to gallery after successful download
       setTimeout(() => {
-        router.push('/dashboard/gallery')
+        router.push('/gallery')
       }, 1500)
     } catch (error) {
       console.error("Download error:", error)
