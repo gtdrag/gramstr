@@ -3,10 +3,16 @@ import postgres from "postgres"
 import { customers } from "./schema/customers"
 import { downloadedContent, crossPostHistory, userPlatformCredentials } from "./schema/content"
 
-// Load .env.local if DATABASE_URL is not already set
-if (!process.env.DATABASE_URL) {
-  const { config } = require("dotenv")
-  config({ path: ".env.local" })
+// In development, load .env.local if DATABASE_URL is not already set
+// In production, DATABASE_URL should be set via Vercel env vars
+if (!process.env.DATABASE_URL && process.env.NODE_ENV === 'development') {
+  try {
+    const { config } = require("dotenv")
+    config({ path: ".env.local" })
+  } catch (e) {
+    // dotenv might not be available in production
+    console.log("Could not load .env.local - ensure DATABASE_URL is set")
+  }
 }
 
 const databaseUrl = process.env.DATABASE_URL
