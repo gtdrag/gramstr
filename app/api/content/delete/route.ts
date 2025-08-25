@@ -1,17 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@clerk/nextjs/server"
 import { db } from "@/db"
 import { downloadedContent } from "@/db/schema"
 import { eq, and } from "drizzle-orm"
 import { deleteFromSupabase } from "@/lib/supabase-storage"
+import { getUserId } from "@/lib/visitor-id"
 
 export async function DELETE(request: NextRequest) {
   try {
-    const { userId } = await auth()
-    
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
+    // Get user ID from NOSTR pubkey or visitor cookie
+    const userId = await getUserId()
 
     const body = await request.json()
     const { contentId } = body

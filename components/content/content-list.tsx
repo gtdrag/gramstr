@@ -8,7 +8,7 @@ import { Share2, Calendar, Heart, Eye, Trash2 } from "lucide-react"
 import { format } from "date-fns"
 import { MediaPreview } from "./media-preview"
 import { CarouselPreview } from "./carousel-preview"
-import { useUser } from "@clerk/nextjs"
+import { api } from "@/lib/api-client"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,18 +40,18 @@ interface ContentItem {
 
 interface ContentListProps {
   refreshTrigger?: number
+  isNostrConnected?: boolean
 }
 
-export function ContentList({ refreshTrigger }: ContentListProps) {
+export function ContentList({ refreshTrigger, isNostrConnected = false }: ContentListProps) {
   const [content, setContent] = useState<ContentItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set())
   const [nostrPostingIds, setNostrPostingIds] = useState<Set<string>>(new Set())
-  const { user } = useUser()
 
   const fetchContent = async () => {
     try {
-      const response = await fetch("/api/content/list")
+      const response = await api.get("/api/content/list")
       const data = await response.json()
 
       if (!response.ok) {
@@ -79,15 +79,9 @@ export function ContentList({ refreshTrigger }: ContentListProps) {
 
   const handleCrossPost = async (contentId: string) => {
     try {
-      const response = await fetch("/api/content/cross-post", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contentId,
-          platforms: ["tiktok", "youtube"] // Example platforms
-        }),
+      const response = await api.post("/api/content/cross-post", {
+        contentId,
+        platforms: ["tiktok", "youtube"] // Example platforms
       })
 
       const data = await response.json()
@@ -107,14 +101,8 @@ export function ContentList({ refreshTrigger }: ContentListProps) {
     setNostrPostingIds(prev => new Set(prev).add(contentId))
     
     try {
-      const response = await fetch("/api/nostr/post", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contentId
-        }),
+      const response = await api.post("/api/nostr/post", {
+        contentId
       })
 
       const data = await response.json()
@@ -141,14 +129,8 @@ export function ContentList({ refreshTrigger }: ContentListProps) {
     setDeletingIds(prev => new Set(prev).add(contentId))
     
     try {
-      const response = await fetch("/api/content/delete", {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contentId
-        }),
+      const response = await api.delete("/api/content/delete", {
+        contentId
       })
 
       const data = await response.json()
@@ -184,8 +166,12 @@ export function ContentList({ refreshTrigger }: ContentListProps) {
 
   if (content.length === 0) {
     return (
-      <div className="text-center py-8 text-muted-foreground">
-        No content downloaded yet. Add an Instagram URL above to get started.
+      <div className="text-center py-8 text-gray-400">
+        {isNostrConnected ? (
+          "No content downloaded yet. Add an Instagram URL above to get started."
+        ) : (
+          "Connect with NOSTR via Alby to view your gallery."
+        )}
       </div>
     )
   }

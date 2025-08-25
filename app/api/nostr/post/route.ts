@@ -1,17 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@clerk/nextjs/server"
 import { db } from "@/db"
 import { downloadedContent, crossPostHistory } from "@/db/schema"
 import { eq } from "drizzle-orm"
 import { NostrService, nostrKeysFromNsec, createNostrKeys } from "@/lib/nostr"
+import { getUserId } from "@/lib/visitor-id"
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth()
-    
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
+    // Get user ID from NOSTR pubkey or visitor cookie
+    const userId = await getUserId()
 
     const { contentId } = await request.json()
 

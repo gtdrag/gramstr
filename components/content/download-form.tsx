@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import { Download, Loader2, Shield, ShieldCheck, Info } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { api } from "@/lib/api-client"
 
 interface DownloadFormProps {
   onDownloadComplete?: () => void
@@ -63,13 +64,7 @@ export function DownloadForm({ onDownloadComplete }: DownloadFormProps) {
     setIsLoading(true)
 
     try {
-      const response = await fetch("/api/content/download", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ url }),
-      })
+      const response = await api.post("/api/content/download", { url })
 
       const data = await response.json()
 
@@ -93,7 +88,7 @@ export function DownloadForm({ onDownloadComplete }: DownloadFormProps) {
       
       // Navigate to gallery after successful download
       setTimeout(() => {
-        router.push('/dashboard/gallery')
+        router.push('/gallery')
       }, 1500)
     } catch (error) {
       console.error("Download error:", error)
@@ -116,65 +111,6 @@ export function DownloadForm({ onDownloadComplete }: DownloadFormProps) {
           disabled={isLoading}
           className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-400 focus:border-purple-500 focus:ring-purple-500/20"
         />
-        
-        {/* Authentication Status */}
-        {authStatus && (
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-sm">
-              {authStatus.authenticated ? (
-                <>
-                  <ShieldCheck className={`h-4 w-4 ${
-                    authStatus.sessionStatus === "fresh" ? "text-green-400" :
-                    authStatus.sessionStatus === "aging" ? "text-yellow-400" :
-                    authStatus.sessionStatus === "old" ? "text-orange-400" :
-                    authStatus.sessionStatus === "expired" ? "text-red-400" : "text-green-400"
-                  }`} />
-                  <span className={`${
-                    authStatus.sessionStatus === "fresh" ? "text-green-400" :
-                    authStatus.sessionStatus === "aging" ? "text-yellow-400" :
-                    authStatus.sessionStatus === "old" ? "text-orange-400" :
-                    authStatus.sessionStatus === "expired" ? "text-red-400" : "text-green-400"
-                  }`}>
-                    Full access enabled
-                    {authStatus.sessionAge !== null && authStatus.sessionAge !== undefined && (
-                      <span className="text-gray-400 ml-1">
-                        ({authStatus.sessionAge} day{authStatus.sessionAge !== 1 ? 's' : ''} old)
-                      </span>
-                    )}
-                  </span>
-                </>
-              ) : (
-                <>
-                  <Shield className="h-4 w-4 text-yellow-400" />
-                  <span className="text-yellow-400">Public content only</span>
-                  <Info className="h-3 w-3 text-gray-400" />
-                </>
-              )}
-            </div>
-            
-            {/* Session Warning */}
-            {authStatus.warningMessage && (
-              <div className={`flex items-center gap-2 text-xs p-2 rounded-md ${
-                authStatus.sessionStatus === "aging" ? "bg-yellow-500/10 border border-yellow-500/20" :
-                authStatus.sessionStatus === "old" ? "bg-orange-500/10 border border-orange-500/20" :
-                authStatus.sessionStatus === "expired" ? "bg-red-500/10 border border-red-500/20" : ""
-              }`}>
-                <Info className={`h-3 w-3 ${
-                  authStatus.sessionStatus === "aging" ? "text-yellow-400" :
-                  authStatus.sessionStatus === "old" ? "text-orange-400" :
-                  authStatus.sessionStatus === "expired" ? "text-red-400" : "text-yellow-400"
-                }`} />
-                <span className={`${
-                  authStatus.sessionStatus === "aging" ? "text-yellow-300" :
-                  authStatus.sessionStatus === "old" ? "text-orange-300" :
-                  authStatus.sessionStatus === "expired" ? "text-red-300" : "text-yellow-300"
-                }`}>
-                  {authStatus.warningMessage}
-                </span>
-              </div>
-            )}
-          </div>
-        )}
       </div>
       <Button 
         type="submit" 

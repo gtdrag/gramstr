@@ -2,6 +2,7 @@ import { CheckoutRedirect } from "@/components/payments/checkout-redirect"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { TailwindIndicator } from "@/components/utility/tailwind-indicator"
 import { ClerkProvider } from "@clerk/nextjs"
+import { NostrProvider } from "@/context/nostr-context"
 import type { Metadata } from "next"
 import { ThemeProvider } from "next-themes"
 import { Geist, Geist_Mono } from "next/font/google"
@@ -30,18 +31,20 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider>
-      <html lang="en" suppressHydrationWarning>
+      <html lang="en" suppressHydrationWarning className="dark">
         <body
-          className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+          className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-950 text-white min-h-screen`}
         >
-          <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-            <TooltipProvider>
-              {children}
-              <CheckoutRedirect />
+          <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+            <NostrProvider>
+              <TooltipProvider>
+                {children}
+                <CheckoutRedirect />
 
-              <TailwindIndicator />
-              <Toaster />
-            </TooltipProvider>
+                <TailwindIndicator />
+                <Toaster />
+              </TooltipProvider>
+            </NostrProvider>
           </ThemeProvider>
         </body>
       </html>
