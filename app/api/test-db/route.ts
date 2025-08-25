@@ -2,6 +2,27 @@ import { NextResponse } from "next/server"
 import { db } from "@/db"
 import { sql } from "drizzle-orm"
 
+// Type for database errors
+interface DbError {
+  message?: string
+  code?: string
+  detail?: string
+  severity?: string
+  hint?: string
+  stack?: string
+}
+
+function getErrorDetails(e: unknown): DbError {
+  const error = e as DbError
+  return {
+    message: error?.message,
+    code: error?.code,
+    detail: error?.detail,
+    severity: error?.severity,
+    hint: error?.hint
+  }
+}
+
 export async function GET() {
   try {
     console.log("TEST-DB: Starting database test")
@@ -19,11 +40,7 @@ export async function GET() {
       return NextResponse.json({
         test: "basic_connection",
         success: false,
-        error: {
-          message: (e as any)?.message,
-          code: (e as any)?.code,
-          detail: (e as any)?.detail
-        }
+        error: getErrorDetails(e)
       })
     }
 
@@ -42,11 +59,7 @@ export async function GET() {
       return NextResponse.json({
         test: "table_exists",
         success: false,
-        error: {
-          message: (e as any)?.message,
-          code: (e as any)?.code,
-          detail: (e as any)?.detail
-        }
+        error: getErrorDetails(e)
       })
     }
 
@@ -62,11 +75,7 @@ export async function GET() {
       return NextResponse.json({
         test: "row_count",
         success: false,
-        error: {
-          message: (e as any)?.message,
-          code: (e as any)?.code,
-          detail: (e as any)?.detail
-        }
+        error: getErrorDetails(e)
       })
     }
 
@@ -81,12 +90,13 @@ export async function GET() {
     })
 
   } catch (error) {
-    console.error("TEST-DB: Unexpected error:", error)
+    const err = getErrorDetails(error)
+    console.error("TEST-DB: Unexpected error:", err)
     return NextResponse.json({
       success: false,
       error: {
-        message: (error as any)?.message || "Unknown error",
-        stack: process.env.NODE_ENV === 'development' ? (error as any)?.stack : undefined
+        message: err?.message || "Unknown error",
+        stack: process.env.NODE_ENV === 'development' ? err?.stack : undefined
       }
     }, { status: 500 })
   }
