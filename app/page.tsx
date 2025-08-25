@@ -3,11 +3,11 @@
 import { useState, useEffect } from "react"
 import { DownloadForm } from "@/components/content/download-form"
 import { UnifiedAuthSection } from "@/components/auth/unified-auth-section"
-import { ConnectionStatus, FloatingConnectButton } from "@/components/nostr/connection-status"
+import { ConnectionStatus } from "@/components/nostr/connection-status"
 import { AlbyConnectModal } from "@/components/nostr/alby-connect-modal"
 import { useNostr } from "@/context/nostr-context"
 import { Button } from "@/components/ui/button"
-import { Grid3x3, Zap } from "lucide-react"
+import { Grid3x3, Check, Circle } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 export default function Page() {
@@ -80,27 +80,48 @@ export default function Page() {
           </p>
         </div>
 
-        {/* Download Form */}
-        <div className="bg-gray-800 border border-gray-700 rounded-2xl p-12 shadow-2xl">
-          <h2 className="text-3xl font-semibold mb-8 text-white text-center">Download Content</h2>
-          <DownloadForm onDownloadComplete={handleDownloadComplete} />
+        {/* Main Content Card */}
+        <div className="bg-gray-800 border border-gray-700 rounded-2xl p-12 shadow-2xl space-y-8">
           
-          {/* Unified Auth Section */}
-          <div className="mt-8">
+          {/* Step 1: Connect */}
+          <div>
+            <div className="flex items-center gap-3 mb-4">
+              <div className={`flex items-center justify-center w-8 h-8 rounded-full ${
+                isConnected ? 'bg-green-500' : 'bg-gray-600'
+              }`}>
+                {isConnected ? (
+                  <Check className="w-4 h-4 text-white" />
+                ) : (
+                  <span className="text-white text-sm font-semibold">1</span>
+                )}
+              </div>
+              <h2 className="text-2xl font-semibold text-white">Connect Your Accounts</h2>
+            </div>
             <UnifiedAuthSection
               instagramAuthStatus={authStatus}
               onInstagramAuthSuccess={checkAuthStatus}
             />
           </div>
+
+          {/* Step 2: Download */}
+          <div className={isConnected ? '' : 'opacity-50 pointer-events-none'}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-600">
+                <span className="text-white text-sm font-semibold">2</span>
+              </div>
+              <h2 className="text-2xl font-semibold text-white">Download Content</h2>
+            </div>
+            <DownloadForm onDownloadComplete={handleDownloadComplete} />
+          </div>
           
-          {/* Or link to gallery */}
-          <div className="mt-8 text-center">
+          {/* Gallery Link */}
+          <div className="pt-4 border-t border-gray-700 text-center">
             <Button
               onClick={() => router.push('/gallery')}
               variant="ghost"
               className="text-gray-400 hover:text-white"
             >
-              Or view your existing content gallery →
+              View your content gallery →
             </Button>
           </div>
         </div>
