@@ -30,13 +30,36 @@ const dbSchema = {
 }
 
 function initializeDb(url: string) {
-  // In production, Supabase requires SSL
   const isProduction = process.env.NODE_ENV === 'production'
-  const client = postgres(url, { 
-    prepare: false,
-    ssl: isProduction ? 'require' : false
-  })
-  return drizzlePostgres(client, { schema: dbSchema })
+  
+  // Parse the connection string to check if it's a pooled connection
+  const isPooledConnection = url.includes('pooler') || url.includes('-pooler')
+  
+  console.log("DB Init - Environment:", process.env.NODE_ENV)
+  console.log("DB Init - Is Production:", isProduction)
+  console.log("DB Init - Is Pooled:", isPooledConnection)
+  console.log("DB Init - URL prefix:", url.substring(0, 30))
+  
+  try {
+    const client = postgres(url, { 
+      prepare: false,
+      ssl: isProduction ? 'require' : false,
+      connection: {
+        application_name: 'instascrape-app'
+      },
+      max: isPooledConnection ? 1 : 10,
+      idle_timeout: 20,
+      connect_timeout: 10,
+      // For debugging connection issues
+      onnotice: isProduction ? undefined : (msg) => console.log("DB Notice:", msg),
+      debug: false
+    })
+    
+    return drizzlePostgres(client, { schema: dbSchema })
+  } catch (error) {
+    console.error("Failed to initialize database connection:", error)
+    throw error
+  }
 }
 
 export const db = initializeDb(databaseUrl)

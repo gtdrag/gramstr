@@ -14,7 +14,9 @@ export async function GET(request: NextRequest) {
 
     console.log("LIST API - userId:", userId)
     console.log("Database URL exists:", !!process.env.DATABASE_URL)
+    console.log("Database URL prefix:", process.env.DATABASE_URL?.substring(0, 30))
     console.log("Environment:", process.env.NODE_ENV)
+    console.log("Vercel Region:", process.env.VERCEL_REGION)
 
     let content
     try {
@@ -25,6 +27,10 @@ export async function GET(request: NextRequest) {
         .orderBy(desc(downloadedContent.downloadedAt))
     } catch (dbError) {
       console.error("Database query error:", dbError)
+      console.error("Error type:", typeof dbError)
+      console.error("Error constructor:", (dbError as any)?.constructor?.name)
+      console.error("Error keys:", Object.keys(dbError as any))
+      
       // Return more detailed error for debugging
       const error = dbError as any
       const errorDetails = {
@@ -33,6 +39,8 @@ export async function GET(request: NextRequest) {
         severity: error?.severity,
         detail: error?.detail,
         hint: error?.hint,
+        cause: error?.cause?.message || error?.cause,
+        originalError: JSON.stringify(error?.originalError || error),
         stack: process.env.NODE_ENV === 'development' ? error?.stack : undefined
       }
       
