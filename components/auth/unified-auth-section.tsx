@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { InstagramAuthSetup } from "@/components/auth/instagram-auth-setup"
+import { InstagramAuthSimple } from "@/components/auth/instagram-auth-simple"
 import { AlbyConnectModal } from "@/components/nostr/alby-connect-modal"
 import { useNostr } from "@/context/nostr-context"
 import { Zap, Instagram, Check, AlertCircle } from "lucide-react"
@@ -95,33 +95,14 @@ export function UnifiedAuthSection({
                 </p>
               ) : (
                 <>
-                  <p className="text-sm text-gray-400">
+                  <p className="text-sm text-gray-400 mb-3">
                     Enable to download Stories and private content
                   </p>
-                  <InstagramAuthSetup onAuthSuccess={onInstagramAuthSuccess} />
+                  <InstagramAuthSimple onAuthSuccess={onInstagramAuthSuccess} />
                 </>
               )}
             </div>
 
-            {/* Status Summary */}
-            {isConnected && (
-              <div className="pt-4 border-t border-gray-700">
-                <div className="text-sm space-y-1">
-                  <div className="flex items-center gap-2 text-green-400">
-                    <Check className="w-3 h-3" />
-                    <span>Download public posts</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-green-400">
-                    <Check className="w-3 h-3" />
-                    <span>Post to NOSTR</span>
-                  </div>
-                  <div className={`flex items-center gap-2 ${hasInstagramAuth ? 'text-green-400' : 'text-gray-500'}`}>
-                    {hasInstagramAuth ? <Check className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
-                    <span>Download Stories & private content</span>
-                  </div>
-                </div>
-              </div>
-            )}
       </div>
 
       <AlbyConnectModal 
