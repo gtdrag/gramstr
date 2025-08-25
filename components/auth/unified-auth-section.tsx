@@ -2,12 +2,10 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { InstagramAuthSetup } from "@/components/auth/instagram-auth-setup"
 import { AlbyConnectModal } from "@/components/nostr/alby-connect-modal"
 import { useNostr } from "@/context/nostr-context"
-import { ChevronDown, ChevronUp, Unlock, Zap, Instagram, Check, AlertCircle } from "lucide-react"
-import { motion } from "framer-motion"
+import { Zap, Instagram, Check, AlertCircle } from "lucide-react"
 
 interface UnifiedAuthSectionProps {
   instagramAuthStatus: {
@@ -23,41 +21,13 @@ export function UnifiedAuthSection({
   onInstagramAuthSuccess 
 }: UnifiedAuthSectionProps) {
   const { isConnected, npub } = useNostr()
-  const [showAuthSection, setShowAuthSection] = useState(false)
   const [showAlbyModal, setShowAlbyModal] = useState(false)
   
   const hasInstagramAuth = instagramAuthStatus?.authenticated && instagramAuthStatus?.sessionStatus !== 'expired'
-  const hasFullAccess = isConnected && hasInstagramAuth
-
-  // Auto-expand if missing critical auth (NOSTR)
-  useState(() => {
-    if (!isConnected) {
-      setShowAuthSection(true)
-    }
-  })
 
   return (
     <>
-      <Collapsible open={showAuthSection} onOpenChange={setShowAuthSection}>
-        <CollapsibleTrigger asChild>
-          <Button
-            variant="ghost"
-            className="w-full justify-center text-gray-400 hover:text-gray-300"
-          >
-            {showAuthSection ? (
-              <ChevronUp className="w-4 h-4" />
-            ) : (
-              <ChevronDown className="w-4 h-4" />
-            )}
-          </Button>
-        </CollapsibleTrigger>
-
-        <CollapsibleContent>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="mt-4 space-y-4 p-4 bg-gray-800/50 rounded-lg border border-gray-700"
-          >
+      <div className="space-y-4 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
             {/* NOSTR Connection */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -152,19 +122,13 @@ export function UnifiedAuthSection({
                 </div>
               </div>
             )}
-          </motion.div>
-        </CollapsibleContent>
-      </Collapsible>
+      </div>
 
       <AlbyConnectModal 
         open={showAlbyModal} 
         onOpenChange={setShowAlbyModal}
         onSuccess={() => {
           setShowAlbyModal(false)
-          // Optionally collapse the auth section after successful connection
-          if (hasInstagramAuth) {
-            setShowAuthSection(false)
-          }
         }}
       />
     </>
