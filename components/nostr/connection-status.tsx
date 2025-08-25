@@ -63,11 +63,12 @@ export function FloatingConnectButton({ onClick }: { onClick: () => void }) {
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.9 }}
-        className="fixed top-4 right-4 z-50"
+        className="fixed top-4 right-4 z-40"
       >
         <Button
           onClick={onClick}
           className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg"
+          size="sm"
         >
           <Zap className="w-4 h-4 mr-2" />
           {isExtensionAvailable ? 'Connect to NOSTR' : 'Get Alby'}

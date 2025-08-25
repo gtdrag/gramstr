@@ -11,7 +11,8 @@ export default function GalleryPage() {
   const router = useRouter()
 
   return (
-    <div className="space-y-8">
+    <div className="min-h-screen bg-gray-950 p-8">
+      <div className="space-y-8">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button
@@ -36,6 +37,7 @@ export default function GalleryPage() {
 
       {/* Content Grid */}
       <ContentList refreshTrigger={refreshTrigger} />
+    </div>
     </div>
   )
 }

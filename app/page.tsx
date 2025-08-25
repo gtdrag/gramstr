@@ -58,10 +58,10 @@ export default function Page() {
         onSuccess={() => setShowAlbyModal(false)}
       />
       
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <div className="w-full max-w-4xl space-y-12">
-        {/* Gallery Link - Top Right */}
-        <div className="absolute top-8 right-8">
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4 py-12">
+        <div className="w-full max-w-4xl space-y-12 relative">
+        {/* Top Right Buttons */}
+        <div className="absolute top-0 right-0 flex gap-2">
           <Button
             onClick={() => router.push('/gallery')}
             variant="outline"
