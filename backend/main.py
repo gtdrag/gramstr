@@ -128,6 +128,15 @@ def is_stories_url(url: str) -> bool:
     import re
     return bool(re.search(r'instagram\.com/stories/[A-Za-z0-9_.-]+', url))
 
+def extract_story_id(url: str) -> str:
+    """Extract the specific story ID from a stories URL if present"""
+    import re
+    # Match patterns like /stories/username/1234567890/
+    match = re.search(r'instagram\.com/stories/[A-Za-z0-9_.-]+/(\d+)', url)
+    if match:
+        return match.group(1)
+    return None
+
 print("=== yt-dlp Instagram Downloader Ready ===")
 
 class DownloadRequest(BaseModel):
@@ -188,7 +197,11 @@ async def download_content(request: DownloadRequest):
         
         # Check if this is a Stories URL and enable cookies if available
         is_story = is_stories_url(request.url)
+        story_id = extract_story_id(request.url) if is_story else None
         cookies_path = load_instagram_cookies()
+        
+        if story_id:
+            print(f"Specific story requested: {story_id}")
         
         if is_story and not cookies_path:
             raise HTTPException(
@@ -278,41 +291,27 @@ async def download_content(request: DownloadRequest):
                     for f in files_to_check:
                         print(f"  - {f.name} (stem: '{f.stem}')")
                     
+                    # If a specific story ID was requested, try to find it
+                    if story_id and is_story:
+                        print(f"Looking for specific story with ID: {story_id}")
+                        for file_path in files_to_check:
+                            if story_id in file_path.name and file_path.suffix.lower() in ['.mp4', '.webm', '.mkv', '.avi', '.mov']:
+                                video_file = str(file_path)
+                                print(f"Found requested story: {file_path.name}")
+                                break
+                    
                     for file_path in files_to_check:
                         filename = file_path.name
                         
+                        # Skip if we already found the specific story video we want
+                        if video_file and story_id and is_story:
+                            continue
+                            
                         # Video files
                         if file_path.suffix.lower() in ['.mp4', '.webm', '.mkv', '.avi', '.mov']:
-                            if video_file is None:  # Take the first (most recent) video
+                            if video_file is None:  # Only select if we haven't found one yet
                                 video_file = str(file_path)
                                 print(f"Selected as VIDEO: {filename}")
-                                
-                                # Look for its corresponding thumbnail
-                                base_name = file_path.stem
-                                print(f"Looking for thumbnail with stem matching: '{base_name}'")
-                                
-                                # Try exact match first
-                                for thumb_candidate in files_to_check:
-                                    if (thumb_candidate.suffix.lower() in ['.jpg', '.jpeg', '.png', '.webp'] and
-                                        thumb_candidate.stem == base_name):  # EXACT match
-                                        thumbnail_file = str(thumb_candidate)
-                                        print(f"Found EXACT MATCH thumbnail: {thumb_candidate.name}")
-                                        break
-                                
-                                # If no exact match, look for thumbnails from same download
-                                if not thumbnail_file:
-                                    print(f"No exact match found, looking for any thumbnail from this download...")
-                                    # Just take the first image file from this download batch
-                                    # Since we've already filtered to only our download ID, this should be safe
-                                    for thumb_candidate in files_to_check:
-                                        if (thumb_candidate.suffix.lower() in ['.jpg', '.jpeg', '.png', '.webp'] and
-                                            thumb_candidate != file_path):  # Don't match the video itself
-                                            thumbnail_file = str(thumb_candidate)
-                                            print(f"Using thumbnail from same download: {thumb_candidate.name}")
-                                            break
-                                    
-                                    if not thumbnail_file:
-                                        print(f"WARNING: No thumbnail found for video {filename}")
                         
                         # Image files (only if no video found)
                         elif (video_file is None and 
@@ -320,6 +319,19 @@ async def download_content(request: DownloadRequest):
                             if image_file is None:
                                 image_file = str(file_path)
                                 print(f"Selected as IMAGE: {filename}")
+                    
+                    # Now find the thumbnail for the selected video
+                    if video_file and not thumbnail_file:
+                        video_path = Path(video_file)
+                        base_name = video_path.stem
+                        print(f"Looking for thumbnail for selected video: '{base_name}'")
+                        
+                        for thumb_candidate in files_to_check:
+                            if (thumb_candidate.suffix.lower() in ['.jpg', '.jpeg', '.png', '.webp'] and
+                                thumb_candidate.stem == base_name):
+                                thumbnail_file = str(thumb_candidate)
+                                print(f"Found matching thumbnail: {thumb_candidate.name}")
+                                break
                 
                 # Determine if it's a video or image based on what we found
                 is_video = video_file is not None
