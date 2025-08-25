@@ -22,6 +22,7 @@ export function UnifiedAuthSection({
 }: UnifiedAuthSectionProps) {
   const { isConnected, npub } = useNostr()
   const [showAlbyModal, setShowAlbyModal] = useState(false)
+  const [showInstagramForm, setShowInstagramForm] = useState(false)
   
   const hasInstagramAuth = instagramAuthStatus?.authenticated && instagramAuthStatus?.sessionStatus !== 'expired'
 
@@ -82,23 +83,32 @@ export function UnifiedAuthSection({
                   </span>
                 </div>
                 {hasInstagramAuth ? (
-                  <div className="flex items-center gap-2 text-green-400">
-                    <Check className="w-4 h-4" />
-                    <span className="text-sm">Active</span>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 text-green-400">
+                      <Check className="w-4 h-4" />
+                      <span className="text-sm">Enabled</span>
+                    </div>
+                    <Button
+                      onClick={() => setShowInstagramForm(!showInstagramForm)}
+                      variant="ghost"
+                      size="sm"
+                      className="text-gray-500 hover:text-gray-300 text-xs px-2 py-1"
+                    >
+                      Update
+                    </Button>
                   </div>
                 ) : null}
               </div>
 
-              {hasInstagramAuth ? (
-                <p className="text-sm text-gray-400">
-                  Full Instagram access enabled - Stories and private content available
-                </p>
-              ) : (
+              {(!hasInstagramAuth || showInstagramForm) && (
                 <>
                   <p className="text-sm text-gray-400 mb-3">
-                    Enable to download Stories and private content
+                    {hasInstagramAuth ? 'Update your Instagram cookies' : 'Enable to download Stories and private content'}
                   </p>
-                  <InstagramAuthSimple onAuthSuccess={onInstagramAuthSuccess} />
+                  <InstagramAuthSimple onAuthSuccess={() => {
+                    onInstagramAuthSuccess()
+                    setShowInstagramForm(false)
+                  }} />
                 </>
               )}
             </div>
