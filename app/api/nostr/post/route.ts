@@ -60,9 +60,16 @@ export async function POST(request: NextRequest) {
     // Handle carousel posts with multiple files
     let noteContent = contentItem.caption || 'Shared from Dumpstr'
     
+    console.log('Content item details:', {
+      isCarousel: contentItem.isCarousel,
+      carouselFiles: contentItem.carouselFiles,
+      filePath: contentItem.filePath,
+      contentType: contentItem.contentType
+    })
+    
     if (contentItem.isCarousel && contentItem.carouselFiles) {
       // Upload all carousel files to get public URLs
-      console.log('Uploading carousel files to public storage...')
+      console.log(`Processing carousel with ${(contentItem.carouselFiles as string[]).length} files...`)
       const publicUrls: string[] = []
       
       for (const file of contentItem.carouselFiles as string[]) {
@@ -90,8 +97,10 @@ export async function POST(request: NextRequest) {
       }
       
       // Add all public URLs to the note
+      console.log(`Collected ${publicUrls.length} public URLs for NOSTR post`)
       if (publicUrls.length > 0) {
         noteContent = `${noteContent}\n\n${publicUrls.join('\n')}`
+        console.log('Final note content with URLs:', noteContent)
       }
       
       // Add original Instagram URL
