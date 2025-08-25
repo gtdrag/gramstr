@@ -202,6 +202,8 @@ async def download_content(request: DownloadRequest):
         
         if story_id:
             print(f"Specific story requested: {story_id}")
+            # For specific stories, we might need to handle differently
+            # yt-dlp might download all stories even with a specific URL
         
         if is_story and not cookies_path:
             raise HTTPException(
@@ -221,6 +223,7 @@ async def download_content(request: DownloadRequest):
         
         # Try yt-dlp first (faster and reliable)
         carousel_caption = None  # Store caption in case we need it for gallery-dl fallback
+        target_story_index = None
         
         # Extract info first (this usually works even when download fails)
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -229,6 +232,29 @@ async def download_content(request: DownloadRequest):
                 print(f"Successfully extracted info for: {info.get('title', 'Unknown')}")
                 carousel_caption = info.get('description', '') or info.get('title', '')
                 print(f"Extracted caption: {carousel_caption[:100]}..." if len(carousel_caption) > 100 else f"Extracted caption: {carousel_caption}")
+                
+                # For stories with specific ID, find which entry matches
+                if is_story and story_id and info:
+                    if info.get('_type') == 'playlist' and 'entries' in info:
+                        print(f"Playlist with {len(info.get('entries', []))} stories")
+                        for idx, entry in enumerate(info.get('entries', [])):
+                            # Check various IDs that might match
+                            entry_id = str(entry.get('id', ''))
+                            display_id = entry.get('display_id', '')
+                            url = entry.get('webpage_url', '')
+                            
+                            print(f"Story {idx+1}: id={entry_id}, display_id={display_id}")
+                            
+                            # Check if this is our requested story
+                            if story_id in [entry_id, display_id] or story_id in url:
+                                target_story_index = idx
+                                print(f"✓ Found target story at index {idx+1}")
+                                # Update options to only download this specific story
+                                ydl_opts['playlist_items'] = str(idx + 1)
+                                ydl_opts['playliststart'] = idx + 1
+                                ydl_opts['playlistend'] = idx + 1
+                                break
+                                
             except Exception as e:
                 print(f"Failed to extract info: {e}")
                 info = None
@@ -291,14 +317,9 @@ async def download_content(request: DownloadRequest):
                     for f in files_to_check:
                         print(f"  - {f.name} (stem: '{f.stem}')")
                     
-                    # If a specific story ID was requested, try to find it
-                    if story_id and is_story:
-                        print(f"Looking for specific story with ID: {story_id}")
-                        for file_path in files_to_check:
-                            if story_id in file_path.name and file_path.suffix.lower() in ['.mp4', '.webm', '.mkv', '.avi', '.mov']:
-                                video_file = str(file_path)
-                                print(f"Found requested story: {file_path.name}")
-                                break
+                    # If we limited to a specific story, we should only have one video
+                    if story_id and is_story and target_story_index is not None:
+                        print(f"Should have only the requested story (index {target_story_index + 1})")
                     
                     for file_path in files_to_check:
                         filename = file_path.name
