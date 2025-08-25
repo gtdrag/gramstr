@@ -189,7 +189,7 @@ export class NostrService {
       const publicVideoUrl = await this.uploadVideoFromUrl(videoUrl, filename)
       
       // Create note content with the actual video
-      const noteContent = `📹 ${caption}\n\n🔗 Original: ${originalUrl}\n\n#Dumpstr #Instagram #VideoShare\n\nPosted via Dumpstr 🤖`
+      const noteContent = `📹 ${caption}\n\n🔗 Original: ${originalUrl}\n\n#gramstr #Instagram #VideoShare\n\nPosted via ⚡gramstr 🤖`
       
       // Publish the note WITH the publicly accessible video URL
       const noteId = await this.publishNote(noteContent, publicVideoUrl)

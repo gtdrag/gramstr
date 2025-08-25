@@ -1,4 +1,4 @@
-# Dumpstr - Instagram Content Management Tool
+# ⚡gramstr - Instagram Content Management Tool
 
 A full-stack application for downloading Instagram content and managing cross-platform distribution. Built as a proof of concept for content management workflows.
 

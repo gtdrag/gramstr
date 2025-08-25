@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "Dumpstr - Instagram to NOSTR",
+  title: "⚡gramstr - Instagram to NOSTR",
   description: "Download Instagram content and cross-post to NOSTR."
 }
 

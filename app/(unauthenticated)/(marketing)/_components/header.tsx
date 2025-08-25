@@ -37,7 +37,7 @@ export function Header({ userMembership }: HeaderProps) {
         >
           <div className="flex lg:flex-1">
             <Link href="/" className="-m-1.5 p-1.5">
-              <span className="text-xl font-bold">Dumpstr</span>
+              <span className="text-xl font-bold">⚡gramstr</span>
             </Link>
           </div>
           <div className="flex lg:hidden">
@@ -122,7 +122,7 @@ export function Header({ userMembership }: HeaderProps) {
                 className="-m-1.5 p-1.5"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                <span className="text-xl font-bold">Dumpstr</span>
+                <span className="text-xl font-bold">⚡gramstr</span>
               </Link>
               <button
                 type="button"
