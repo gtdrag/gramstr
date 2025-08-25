@@ -68,29 +68,23 @@ export async function POST(request: NextRequest) {
       for (const file of contentItem.carouselFiles as string[]) {
         try {
           // Check if this is already a Supabase URL or just a filename
-          let sourceUrl: string
-          let filename: string
-          
           if (file.startsWith('http://') || file.startsWith('https://')) {
-            // Already a Supabase URL, use it directly
-            sourceUrl = file
-            // Extract filename from URL path
-            const urlParts = file.split('/')
-            filename = urlParts[urlParts.length - 1] || 'media'
-            console.log(`Using Supabase URL directly: ${sourceUrl}`)
+            // Already a Supabase URL, use it directly - no need to re-upload!
+            console.log(`Using existing Supabase URL: ${file}`)
+            publicUrls.push(file)
           } else {
-            // Just a filename, construct backend URL
+            // Just a filename, need to fetch from backend and upload
             const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
-            sourceUrl = `${backendUrl}/media/${userId}/${encodeURIComponent(file)}`
-            filename = file
-            console.log(`Constructing backend URL: ${sourceUrl}`)
+            const sourceUrl = `${backendUrl}/media/${userId}/${encodeURIComponent(file)}`
+            console.log(`Fetching from backend and uploading: ${sourceUrl}`)
+            
+            // This will download from backend and re-upload to Supabase
+            const publicUrl = await nostrService.uploadVideoFromUrl(sourceUrl, file)
+            publicUrls.push(publicUrl)
+            console.log(`Uploaded ${file} to ${publicUrl}`)
           }
-          
-          const publicUrl = await nostrService.uploadVideoFromUrl(sourceUrl, filename)
-          publicUrls.push(publicUrl)
-          console.log(`Uploaded ${filename} to ${publicUrl}`)
         } catch (error) {
-          console.error(`Failed to upload ${file}:`, error)
+          console.error(`Failed to process ${file}:`, error)
           // Continue with other files even if one fails
         }
       }
@@ -127,37 +121,34 @@ export async function POST(request: NextRequest) {
         message: `Successfully posted carousel with ${publicUrls.length} items to NOSTR!`
       })
     } else {
-      // Single media file - upload to get public URL
-      let sourceUrl: string
-      let filename: string
+      // Single media file - get public URL
+      let publicUrl: string
       
       // Check if filePath is already a Supabase URL or just a filename
       if (contentItem.filePath && (contentItem.filePath.startsWith('http://') || contentItem.filePath.startsWith('https://'))) {
-        // Already a Supabase URL, use it directly
-        sourceUrl = contentItem.filePath
-        // Extract filename from URL path
-        const urlParts = contentItem.filePath.split('/')
-        filename = urlParts[urlParts.length - 1] || 'media'
-        console.log(`Using Supabase URL directly: ${sourceUrl}`)
+        // Already a Supabase URL, use it directly - no need to re-upload!
+        publicUrl = contentItem.filePath
+        console.log(`Using existing Supabase URL: ${publicUrl}`)
       } else {
-        // Just a filename, construct backend URL
+        // Just a filename, need to fetch from backend and upload
         const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
-        sourceUrl = `${backendUrl}/media/${userId}/${encodeURIComponent(contentItem.filePath || '')}`
-        filename = contentItem.filePath || 'media'
-        console.log(`Constructing backend URL: ${sourceUrl}`)
+        const sourceUrl = `${backendUrl}/media/${userId}/${encodeURIComponent(contentItem.filePath || '')}`
+        const filename = contentItem.filePath || 'media'
+        console.log(`Fetching from backend and uploading: ${sourceUrl}`)
+        
+        try {
+          publicUrl = await nostrService.uploadVideoFromUrl(sourceUrl, filename)
+          console.log(`Uploaded to public URL: ${publicUrl}`)
+        } catch (error) {
+          console.error('Failed to upload media:', error)
+          return NextResponse.json({ 
+            error: "Failed to upload media to public storage. Make sure Supabase Storage is configured." 
+          }, { status: 500 })
+        }
       }
       
-      console.log('Uploading media to public storage...')
-      let publicUrl: string
-      try {
-        publicUrl = await nostrService.uploadVideoFromUrl(sourceUrl, filename)
-        console.log(`Uploaded to public URL: ${publicUrl}`)
-      } catch (error) {
-        console.error('Failed to upload media:', error)
-        return NextResponse.json({ 
-          error: "Failed to upload media to public storage. Make sure Supabase Storage is configured." 
-        }, { status: 500 })
-      }
+      // Extract filename for NOSTR post
+      const filename = contentItem.filePath?.split('/').pop() || 'media'
       
       // Publish to NOSTR with public URL
       const noteId = await nostrService.publishInstagramVideo(
