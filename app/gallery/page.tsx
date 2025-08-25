@@ -5,10 +5,12 @@ import { ContentList } from "@/components/content/content-list"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { useNostr } from "@/context/nostr-context"
 
 export default function GalleryPage() {
   const [refreshTrigger, setRefreshTrigger] = useState(0)
   const router = useRouter()
+  const { isConnected } = useNostr()
 
   return (
     <div className="min-h-screen bg-gray-950 p-8">
@@ -31,12 +33,12 @@ export default function GalleryPage() {
           Content Gallery
         </h1>
         <p className="text-gray-400 text-lg">
-          Manage your downloaded Instagram content and cross-post to platforms.
+          Manage your downloaded Instagram content and cross-post to NOSTR.
         </p>
       </div>
 
       {/* Content Grid */}
-      <ContentList refreshTrigger={refreshTrigger} />
+      <ContentList refreshTrigger={refreshTrigger} isNostrConnected={isConnected} />
     </div>
     </div>
   )

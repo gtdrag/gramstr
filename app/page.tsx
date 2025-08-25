@@ -55,7 +55,7 @@ export default function Page() {
         onSuccess={() => setShowAlbyModal(false)}
       />
       
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4 py-12">
+      <div className={`min-h-screen bg-gray-950 flex items-center justify-center px-4 py-12 ${isConnected ? 'pt-20' : ''}`}>
         <div className="w-full max-w-4xl space-y-12 relative">
         {/* Top Right Buttons */}
         <div className="absolute top-0 right-0 flex gap-2">
@@ -72,8 +72,11 @@ export default function Page() {
         {/* Hero Section */}
 
         <div className="text-center space-y-6">
-          <h1 className="text-6xl font-bold tracking-tight bg-gradient-to-r from-purple-400 to-purple-600 bg-clip-text text-transparent">
-            ⚡gramstr
+          <h1 className="text-6xl font-bold tracking-tight py-6">
+            <span className="inline-flex items-center">
+              <span className="text-purple-500 leading-none translate-y-2">⚡</span>
+              <span className="h-16 bg-gradient-to-r from-purple-600 via-orange-500 to-pink-500 bg-clip-text text-transparent">gramstr</span>
+            </span>
           </h1>
           <p className="text-gray-400 text-xl max-w-2xl mx-auto">
             Download Instagram content and cross-post to NOSTR
@@ -111,6 +114,11 @@ export default function Page() {
               </div>
               <h2 className="text-2xl font-semibold text-white">Download Content</h2>
             </div>
+            {!isConnected && (
+              <div className="mb-4 text-sm text-gray-400 italic">
+                Connect with Alby to enable downloads
+              </div>
+            )}
             <DownloadForm onDownloadComplete={handleDownloadComplete} />
           </div>
           

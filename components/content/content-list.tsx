@@ -40,9 +40,10 @@ interface ContentItem {
 
 interface ContentListProps {
   refreshTrigger?: number
+  isNostrConnected?: boolean
 }
 
-export function ContentList({ refreshTrigger }: ContentListProps) {
+export function ContentList({ refreshTrigger, isNostrConnected = false }: ContentListProps) {
   const [content, setContent] = useState<ContentItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set())
@@ -165,8 +166,12 @@ export function ContentList({ refreshTrigger }: ContentListProps) {
 
   if (content.length === 0) {
     return (
-      <div className="text-center py-8 text-muted-foreground">
-        No content downloaded yet. Add an Instagram URL above to get started.
+      <div className="text-center py-8 text-gray-400">
+        {isNostrConnected ? (
+          "No content downloaded yet. Add an Instagram URL above to get started."
+        ) : (
+          "Connect with NOSTR via Alby to view your gallery."
+        )}
       </div>
     )
   }

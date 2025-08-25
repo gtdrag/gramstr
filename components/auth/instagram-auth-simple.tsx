@@ -16,11 +16,11 @@ export function InstagramAuthSimple({ onAuthSuccess }: InstagramAuthSimpleProps)
   const [cookies, setCookies] = useState({
     csrftoken: "",
     ds_user_id: "",
-    sessionid: "",
     ig_did: "",
-    mid: "",
     ig_nrcb: "",
-    rur: ""
+    mid: "",
+    rur: "",
+    sessionid: ""
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showGuide, setShowGuide] = useState(false)
@@ -56,6 +56,8 @@ export function InstagramAuthSimple({ onAuthSuccess }: InstagramAuthSimpleProps)
           domain: ".instagram.com"
         }))
 
+      console.log("Sending cookie data:", cookieData)
+
       // Create a JSON file blob to send to upload endpoint
       const jsonBlob = new Blob([JSON.stringify(cookieData)], { type: 'application/json' })
       const formData = new FormData()
@@ -67,6 +69,7 @@ export function InstagramAuthSimple({ onAuthSuccess }: InstagramAuthSimpleProps)
       })
 
       const data = await response.json()
+      console.log("Response:", response.status, data)
 
       if (!response.ok) {
         throw new Error(data.error || "Authentication failed")
@@ -74,11 +77,13 @@ export function InstagramAuthSimple({ onAuthSuccess }: InstagramAuthSimpleProps)
 
       toast.success("Instagram authentication enabled!")
       setCookies({
-        sessionid: "",
-        ds_user_id: "",
         csrftoken: "",
+        ds_user_id: "",
+        ig_did: "",
+        ig_nrcb: "",
         mid: "",
-        ig_did: ""
+        rur: "",
+        sessionid: ""
       })
       onAuthSuccess?.()
     } catch (error) {
@@ -186,11 +191,11 @@ export function InstagramAuthSimple({ onAuthSuccess }: InstagramAuthSimpleProps)
                   <ul className="mt-2 space-y-1 text-xs">
                     <li className="text-gray-400">• <code className="bg-gray-800 px-1 rounded">csrftoken</code></li>
                     <li className="text-gray-400">• <code className="bg-gray-800 px-1 rounded">ds_user_id</code></li>
-                    <li className="text-gray-400">• <code className="bg-gray-800 px-1 rounded">sessionid</code></li>
                     <li className="text-gray-400">• <code className="bg-gray-800 px-1 rounded">ig_did</code></li>
-                    <li className="text-gray-400">• <code className="bg-gray-800 px-1 rounded">mid</code></li>
                     <li className="text-gray-400">• <code className="bg-gray-800 px-1 rounded">ig_nrcb</code></li>
+                    <li className="text-gray-400">• <code className="bg-gray-800 px-1 rounded">mid</code></li>
                     <li className="text-gray-400">• <code className="bg-gray-800 px-1 rounded">rur</code></li>
+                    <li className="text-gray-400">• <code className="bg-gray-800 px-1 rounded">sessionid</code></li>
                   </ul>
                 </div>
               </div>

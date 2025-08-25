@@ -34,7 +34,22 @@ export function AlbyConnectModal({ open, onOpenChange, onSuccess }: AlbyConnectM
   }
 
   const handleInstallClick = () => {
-    window.open('https://getalby.com', '_blank')
+    // Detect browser and open appropriate extension store
+    const userAgent = navigator.userAgent.toLowerCase()
+    let extensionUrl = ''
+    
+    if (userAgent.includes('firefox')) {
+      // Firefox Add-ons
+      extensionUrl = 'https://addons.mozilla.org/en-US/firefox/addon/alby/'
+    } else if (userAgent.includes('edg')) {
+      // Microsoft Edge
+      extensionUrl = 'https://microsoftedge.microsoft.com/addons/detail/alby-bitcoin-wallet-for-/iokeahhehimjnekafflcihljlcjccdbe'
+    } else {
+      // Chrome, Brave, Opera, and other Chromium browsers
+      extensionUrl = 'https://chrome.google.com/webstore/detail/alby-bitcoin-lightning-wa/iokeahhehimjnekafflcihljlcjccdbe'
+    }
+    
+    window.open(extensionUrl, '_blank')
     // Check for extension after a delay
     setTimeout(() => {
       checkExtension()
@@ -128,13 +143,28 @@ export function AlbyConnectModal({ open, onOpenChange, onSuccess }: AlbyConnectM
                     </div>
 
                     {/* Refresh button */}
-                    <Button
-                      variant="outline"
-                      onClick={checkExtension}
-                      className="w-full border-gray-700 text-gray-400 hover:text-white"
-                    >
-                      I've installed Alby - Check again
-                    </Button>
+                    <div className="space-y-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          // Force a re-check
+                          console.log('Manual extension check triggered')
+                          checkExtension()
+                          
+                          // Also try after a delay in case extension is still loading
+                          setTimeout(() => {
+                            console.log('Delayed extension check')
+                            checkExtension()
+                          }, 1000)
+                        }}
+                        className="w-full border-gray-700 text-gray-400 hover:text-white"
+                      >
+                        I've installed Alby - Check again
+                      </Button>
+                      <p className="text-xs text-gray-500 text-center">
+                        Extension not detected? Try refreshing the page (Cmd+R or Ctrl+R)
+                      </p>
+                    </div>
                   </>
                 ) : (
                   <>

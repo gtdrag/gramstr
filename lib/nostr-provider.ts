@@ -45,7 +45,19 @@ export class NostrProvider {
    * Check if Alby or another NIP-07 extension is installed
    */
   isExtensionAvailable(): boolean {
-    return typeof window !== 'undefined' && window.nostr !== undefined
+    if (typeof window === 'undefined') return false
+    
+    // Check for window.nostr (standard NIP-07)
+    const hasNostr = window.nostr !== undefined
+    
+    // Log for debugging
+    console.log('Checking for NOSTR extension:', {
+      hasNostr,
+      windowNostr: window.nostr,
+      hasGetPublicKey: window.nostr?.getPublicKey !== undefined
+    })
+    
+    return hasNostr
   }
 
   /**
