@@ -48,8 +48,9 @@ def get_ytdlp_options(output_dir: str, download_id: str = None):
         download_id = str(uuid.uuid4())[:8]
     
     return {
-        # Use our download ID as prefix to ensure unique, findable files
-        'outtmpl': f'{output_dir}/{download_id}_%(title)s.%(ext)s',
+        # Use our download ID as prefix AND include unique identifiers to prevent overwrites
+        # For stories/playlists, include playlist_index to ensure unique filenames
+        'outtmpl': f'{output_dir}/{download_id}_%(title)s_%(playlist_index|)s%(playlist_index& |)s%(id)s.%(ext)s',
         'format': 'best/worst',  # Accept any available format
         'writeinfojson': True,  # Save metadata
         'writethumbnail': True,  # Save thumbnail
