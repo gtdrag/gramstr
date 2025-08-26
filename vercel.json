@@ -10,5 +10,16 @@
     "app/api/content/download/route.ts": {
       "maxDuration": 60
     }
-  }
+  },
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "x-vercel-protection-bypass",
+          "value": "true"
+        }
+      ]
+    }
+  ]
 }
