@@ -75,11 +75,11 @@ export default function Page() {
           <h1 className="text-6xl font-bold tracking-tight py-6">
             <span className="inline-flex items-center">
               <span className="text-purple-500 leading-none translate-y-2">⚡</span>
-              <span className="h-16 bg-gradient-to-r from-purple-600 via-orange-500 to-pink-500 bg-clip-text text-transparent">gramstr</span>
+              <span className="h-16 bg-gradient-to-r from-purple-600 via-orange-500 to-pink-500 bg-clip-text text-transparent">ContentVault</span>
             </span>
           </h1>
           <p className="text-gray-400 text-xl max-w-2xl mx-auto">
-            Download Instagram content and cross-post to NOSTR
+            Download content from Instagram, YouTube, TikTok & more. Cross-post to NOSTR.
           </p>
         </div>
 

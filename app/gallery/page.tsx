@@ -33,7 +33,7 @@ export default function GalleryPage() {
           Content Gallery
         </h1>
         <p className="text-gray-400 text-lg">
-          Manage your downloaded Instagram content and cross-post to NOSTR.
+          Manage your downloaded content from Instagram, YouTube, TikTok, and more. Cross-post to NOSTR.
         </p>
       </div>
 

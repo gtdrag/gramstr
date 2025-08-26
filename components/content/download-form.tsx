@@ -51,13 +51,14 @@ export function DownloadForm({ onDownloadComplete }: DownloadFormProps) {
     e.preventDefault()
     
     if (!url.trim()) {
-      toast.error("Please enter an Instagram URL")
+      toast.error("Please enter a URL from Instagram, YouTube, TikTok, Twitter/X, or Pinterest")
       return
     }
 
-    // Check if protected content requires authentication
-    if (isStoriesUrl(url) && !authStatus?.storiesSupported) {
-      toast.error("This content requires Instagram authentication. Please set up login first.")
+    // Check if protected Instagram content requires authentication
+    const isInstagramUrl = url.includes('instagram.com')
+    if (isInstagramUrl && isStoriesUrl(url) && !authStatus?.storiesSupported) {
+      toast.error("Instagram Stories require authentication. Please set up login first.")
       return
     }
 
@@ -101,11 +102,11 @@ export function DownloadForm({ onDownloadComplete }: DownloadFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-3">
-        <Label htmlFor="url" className="text-gray-200 font-medium">Instagram URL</Label>
+        <Label htmlFor="url" className="text-gray-200 font-medium">Content URL</Label>
         <Input
           id="url"
           type="url"
-          placeholder="https://www.instagram.com/p/... or /stories/..."
+          placeholder="Paste URL from Instagram, YouTube, TikTok, Twitter/X, or Pinterest"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           disabled={isLoading}

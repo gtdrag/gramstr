@@ -107,6 +107,8 @@ def get_ytdlp_options(output_dir: str, download_id: str = None):
     proxy_url = get_proxy_url()
     if proxy_url:
         options['proxy'] = proxy_url
+        # Disable SSL verification for proxy (common requirement for residential proxies)
+        options['nocheckcertificate'] = True
         print(f"yt-dlp will use proxy: {proxy_url[:30]}...")
     
     return options
