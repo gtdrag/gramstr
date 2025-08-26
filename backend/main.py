@@ -43,13 +43,55 @@ app.add_middleware(
 )
 
 # yt-dlp configuration
+def get_proxy_url():
+    """Get proxy URL from environment variables"""
+    # Support multiple proxy providers through environment variables
+    # Priority order: specific proxy URL > service-specific configs
+    
+    # Direct proxy URL (any provider)
+    proxy_url = os.environ.get('PROXY_URL')
+    if proxy_url:
+        print(f"Using proxy: {proxy_url[:30]}...")
+        return proxy_url
+    
+    # Bright Data (formerly Luminati)
+    if os.environ.get('BRIGHTDATA_USERNAME'):
+        username = os.environ.get('BRIGHTDATA_USERNAME')
+        password = os.environ.get('BRIGHTDATA_PASSWORD')
+        host = os.environ.get('BRIGHTDATA_HOST', 'brd.superproxy.io')
+        port = os.environ.get('BRIGHTDATA_PORT', '22225')
+        proxy_url = f"http://{username}:{password}@{host}:{port}"
+        print(f"Using Bright Data proxy")
+        return proxy_url
+    
+    # Smartproxy
+    if os.environ.get('SMARTPROXY_USERNAME'):
+        username = os.environ.get('SMARTPROXY_USERNAME')
+        password = os.environ.get('SMARTPROXY_PASSWORD')
+        endpoint = os.environ.get('SMARTPROXY_ENDPOINT', 'gate.smartproxy.com:7000')
+        proxy_url = f"http://{username}:{password}@{endpoint}"
+        print(f"Using Smartproxy")
+        return proxy_url
+    
+    # Oxylabs
+    if os.environ.get('OXYLABS_USERNAME'):
+        username = os.environ.get('OXYLABS_USERNAME')
+        password = os.environ.get('OXYLABS_PASSWORD')
+        endpoint = os.environ.get('OXYLABS_ENDPOINT', 'pr.oxylabs.io:7777')
+        proxy_url = f"http://{username}:{password}@{endpoint}"
+        print(f"Using Oxylabs proxy")
+        return proxy_url
+    
+    print("No proxy configured - using direct connection")
+    return None
+
 def get_ytdlp_options(output_dir: str, download_id: str = None):
     """Get yt-dlp options for Instagram downloads with controlled naming"""
     # Use a unique ID for this download session to ensure we can find our files
     if not download_id:
         download_id = str(uuid.uuid4())[:8]
     
-    return {
+    options = {
         # Use our download ID as prefix AND include unique identifiers to prevent overwrites
         # For stories/playlists, include playlist_index to ensure unique filenames
         'outtmpl': f'{output_dir}/{download_id}_%(title)s_%(playlist_index|)s%(playlist_index& |)s%(id)s.%(ext)s',
@@ -60,6 +102,14 @@ def get_ytdlp_options(output_dir: str, download_id: str = None):
         'no_warnings': False,
         'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
     }
+    
+    # Add proxy if configured
+    proxy_url = get_proxy_url()
+    if proxy_url:
+        options['proxy'] = proxy_url
+        print(f"yt-dlp will use proxy: {proxy_url[:30]}...")
+    
+    return options
 
 def convert_json_to_netscape_cookies(json_path: str, netscape_path: str):
     """Convert JSON cookies to Netscape format for yt-dlp"""
