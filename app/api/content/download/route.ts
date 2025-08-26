@@ -17,10 +17,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "URL is required" }, { status: 400 })
     }
 
-    // Validate Instagram URL (including Stories)
-    const instagramUrlRegex = /^https?:\/\/(www\.)?instagram\.com\/(p|reel|reels|tv|stories)\/[A-Za-z0-9_.-]+/
-    if (!instagramUrlRegex.test(url)) {
-      return NextResponse.json({ error: "Invalid Instagram URL" }, { status: 400 })
+    // Validate supported platform URLs
+    const supportedUrlPatterns = [
+      /^https?:\/\/(www\.)?instagram\.com\/(p|reel|reels|tv|stories)\/[A-Za-z0-9_.-]+/, // Instagram
+      /^https?:\/\/(www\.|m\.)?youtube\.com\/watch\?v=[\w-]+/, // YouTube
+      /^https?:\/\/youtu\.be\/[\w-]+/, // YouTube short
+      /^https?:\/\/(www\.)?tiktok\.com\/@[\w.-]+\/video\/\d+/, // TikTok
+      /^https?:\/\/(www\.)?twitter\.com\/\w+\/status\/\d+/, // Twitter/X
+      /^https?:\/\/(www\.)?x\.com\/\w+\/status\/\d+/, // X.com
+      /^https?:\/\/(www\.)?pinterest\.(com|co\.\w+)\/pin\/\d+/, // Pinterest
+    ]
+    
+    const isValidUrl = supportedUrlPatterns.some(pattern => pattern.test(url))
+    if (!isValidUrl) {
+      return NextResponse.json({ 
+        error: "Unsupported URL. Supported platforms: Instagram, YouTube, TikTok, Twitter/X, Pinterest" 
+      }, { status: 400 })
     }
 
     // Call Python backend
