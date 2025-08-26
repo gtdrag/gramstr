@@ -33,7 +33,9 @@ app.add_middleware(
         "http://localhost:3001",
         "https://instascrape.vercel.app",
         "https://instascrape-*.vercel.app",  # For preview deployments
-        "https://*.vercel.app"  # Fallback for any Vercel domain
+        "https://instascrape-*-gtdrags-projects.vercel.app",  # Your preview pattern
+        "https://*.vercel.app",  # Fallback for any Vercel domain
+        "https://*-gtdrags-projects.vercel.app"  # Alternative pattern
     ],
     allow_credentials=True,
     allow_methods=["*"],
