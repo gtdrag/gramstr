@@ -115,7 +115,7 @@ export class NostrService {
   // Upload video from URL (for our Instagram videos)
   async uploadVideoFromUrl(videoUrl: string, filename: string): Promise<string> {
     try {
-      console.log('📤 Downloading and uploading video to nostr.build...')
+      console.log('📤 Downloading and uploading video to Supabase Storage...')
       
       // Download the video
       const videoResponse = await fetch(videoUrl)
