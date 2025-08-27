@@ -3,6 +3,7 @@
  */
 
 import { nostrProvider } from "./nostr-provider"
+import { getElectronNostr } from "./nostr-electron"
 
 interface RequestOptions extends RequestInit {
   includeNostrPubkey?: boolean
@@ -22,8 +23,18 @@ export async function apiFetch(
   
   // Add NOSTR pubkey if available and requested
   if (includeNostrPubkey) {
-    const pubkey = nostrProvider.getPublicKey()
+    // Try Electron key first
+    const electronNostr = getElectronNostr()
+    let pubkey = electronNostr?.getPublicKey()
+    
+    // Fall back to Alby/browser extension
+    if (!pubkey) {
+      pubkey = nostrProvider.getPublicKey()
+    }
+    
     if (pubkey) {
+      // The pubkey might be in hex format from Electron, or npub from Alby
+      // The server expects hex format, so we need to ensure it's hex
       headers.set('x-nostr-pubkey', pubkey)
     }
   }

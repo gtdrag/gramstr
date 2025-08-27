@@ -4,8 +4,11 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { InstagramAuthSimple } from "@/components/auth/instagram-auth-simple"
 import { AlbyConnectModal } from "@/components/nostr/alby-connect-modal"
+import { ElectronKeyManager } from "@/components/nostr/electron-key-manager"
 import { useNostr } from "@/context/nostr-context"
+import { useElectron } from "@/hooks/use-electron"
 import { Zap, Instagram, Check, AlertCircle } from "lucide-react"
+import { toast } from "sonner"
 
 interface UnifiedAuthSectionProps {
   instagramAuthStatus: {
@@ -21,6 +24,7 @@ export function UnifiedAuthSection({
   onInstagramAuthSuccess 
 }: UnifiedAuthSectionProps) {
   const { isConnected, npub } = useNostr()
+  const { isElectron, openInBrowser } = useElectron()
   const [showAlbyModal, setShowAlbyModal] = useState(false)
   const [showInstagramForm, setShowInstagramForm] = useState(false)
   
@@ -53,7 +57,11 @@ export function UnifiedAuthSection({
                 <div className="text-sm text-gray-400">
                   Connected as {npub?.slice(0, 12)}...{npub?.slice(-4)}
                 </div>
+              ) : isElectron ? (
+                // Show key import UI for Electron
+                <ElectronKeyManager />
               ) : (
+                // Show Alby connection for browser
                 <>
                   <p className="text-sm text-gray-400">
                     Connect with Alby to save your gallery and post to NOSTR
@@ -115,13 +123,16 @@ export function UnifiedAuthSection({
 
       </div>
 
-      <AlbyConnectModal 
-        open={showAlbyModal} 
-        onOpenChange={setShowAlbyModal}
-        onSuccess={() => {
-          setShowAlbyModal(false)
-        }}
-      />
+      {/* Only show modal in browser, not in Electron */}
+      {!isElectron && (
+        <AlbyConnectModal 
+          open={showAlbyModal} 
+          onOpenChange={setShowAlbyModal}
+          onSuccess={() => {
+            setShowAlbyModal(false)
+          }}
+        />
+      )}
     </>
   )
 }
