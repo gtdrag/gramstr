@@ -8,12 +8,6 @@ const nextConfig: NextConfig = {
   },
   // For Electron, we need to handle routing differently
   trailingSlash: process.env.ELECTRON_BUILD === 'true',
-  // Disable server-side features for Electron build
-  experimental: {
-    ...(process.env.ELECTRON_BUILD === 'true' && {
-      isrMemoryCacheSize: 0
-    })
-  }
 }
 
 export default nextConfig

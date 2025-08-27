@@ -1,7 +1,5 @@
-import { CheckoutRedirect } from "@/components/payments/checkout-redirect"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { TailwindIndicator } from "@/components/utility/tailwind-indicator"
-import { ClerkProvider } from "@clerk/nextjs"
 import { NostrProvider } from "@/context/nostr-context"
 import type { Metadata } from "next"
 import { ThemeProvider } from "next-themes"
@@ -30,8 +28,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <ClerkProvider>
-      <html lang="en" suppressHydrationWarning className="dark">
+    <html lang="en" suppressHydrationWarning className="dark">
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-950 text-white min-h-screen`}
         >
@@ -39,7 +36,6 @@ export default function RootLayout({
             <NostrProvider>
               <TooltipProvider>
                 {children}
-                <CheckoutRedirect />
 
                 <TailwindIndicator />
                 <Toaster />
@@ -48,6 +44,5 @@ export default function RootLayout({
           </ThemeProvider>
         </body>
       </html>
-    </ClerkProvider>
   )
 }

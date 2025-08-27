@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getUserId } from "@/lib/visitor-id"
 import { db } from "@/db"
 import { downloadedContent } from "@/db/schema/content"
+import { eq } from "drizzle-orm"
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,15 +22,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid Instagram URL" }, { status: 400 })
     }
 
+    // Extract shortcode from URL
+    const shortcodeMatch = url.match(/\/(?:p|reel|tv)\/([A-Za-z0-9_-]+)/)
+    const shortcode = shortcodeMatch ? shortcodeMatch[1] : url.split('/').filter(Boolean).pop() || 'unknown'
+
     // Create a placeholder record immediately
     const [record] = await db.insert(downloadedContent).values({
       userId,
       originalUrl: url,
+      shortcode,
       status: "processing",
       downloadedAt: new Date(),
       contentType: "image", // Will be updated
       isVideo: false,
       isCarousel: false,
+      caption: "",
+      filePath: "",
+      likes: 0,
+      views: 0,
     }).returning()
 
     // Start the download in the background (fire and forget)
