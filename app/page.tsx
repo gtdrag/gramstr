@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { DownloadForm } from "@/components/content/download-form"
+import { BulkDownloadForm } from "@/components/content/bulk-download-form"
 import { UnifiedAuthSection } from "@/components/auth/unified-auth-section"
 import { AlbyConnectModal } from "@/components/nostr/alby-connect-modal"
 import { AppLayout } from "@/components/layout/app-layout"
@@ -111,7 +111,7 @@ export default function Page() {
                 {isElectron ? 'Import your Nostr key to enable downloads' : 'Connect with Alby to enable downloads'}
               </div>
             )}
-            <DownloadForm onDownloadComplete={handleDownloadComplete} />
+            <BulkDownloadForm onDownloadComplete={handleDownloadComplete} />
           </div>
           
         </div>
