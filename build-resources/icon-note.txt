@@ -1,0 +1,12 @@
+Icon files needed for distribution:
+
+1. icon.icns - macOS icon (1024x1024px recommended)
+2. icon.ico - Windows icon (256x256px recommended)  
+3. icon.png - Linux icon (512x512px recommended)
+
+You can generate these from a single high-resolution PNG using online tools or:
+- macOS: iconutil or Icon Set Creator
+- Windows: ConvertICO or IcoFX
+- Linux: Use PNG directly
+
+Place the generated icon files in this directory.

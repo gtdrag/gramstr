@@ -4,11 +4,12 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
-import { Share2, Calendar, Heart, Eye, Trash2 } from "lucide-react"
+import { Share2, Calendar, Heart, Eye, Trash2, Key } from "lucide-react"
 import { format } from "date-fns"
 import { MediaPreview } from "./media-preview"
 import { CarouselPreview } from "./carousel-preview"
 import { api } from "@/lib/api-client"
+import { useRouter } from "next/navigation"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,6 +21,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { useElectron } from "@/hooks/use-electron"
+import { getElectronNostr } from "@/lib/nostr-electron"
 
 interface ContentItem {
   id: string
@@ -48,6 +51,13 @@ export function ContentList({ refreshTrigger, isNostrConnected = false }: Conten
   const [isLoading, setIsLoading] = useState(true)
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set())
   const [nostrPostingIds, setNostrPostingIds] = useState<Set<string>>(new Set())
+  const { isElectron, openInBrowser } = useElectron()
+  const router = useRouter()
+  
+  // Check if Electron has a key imported
+  const hasElectronKey = isElectron && getElectronNostr()?.hasKey()
+  // Consider connected if either web Nostr or Electron key exists
+  const hasNostrAccess = isNostrConnected || hasElectronKey
 
   const fetchContent = async () => {
     try {
@@ -101,9 +111,44 @@ export function ContentList({ refreshTrigger, isNostrConnected = false }: Conten
     setNostrPostingIds(prev => new Set(prev).add(contentId))
     
     try {
-      const response = await api.post("/api/nostr/post", {
-        contentId
-      })
+      let requestBody: any = { contentId }
+      
+      // Check if in Electron with imported key
+      if (isElectron) {
+        const electronNostr = getElectronNostr()
+        if (!electronNostr || !electronNostr.hasKey()) {
+          toast.error("Please import your Nostr key first")
+          setNostrPostingIds(prev => {
+            const newSet = new Set(prev)
+            newSet.delete(contentId)
+            return newSet
+          })
+          return
+        }
+        
+        // Get content details to create the event
+        const contentItem = content.find(item => item.id === contentId)
+        if (!contentItem) {
+          throw new Error("Content not found")
+        }
+        
+        // Create and sign the event locally
+        const event = {
+          kind: 1,
+          created_at: Math.floor(Date.now() / 1000),
+          tags: [],
+          content: `${contentItem.caption || 'Shared from ⚡gramstr'}\n\nOriginal: ${contentItem.originalUrl}`,
+        }
+        
+        const signedEvent = await electronNostr.signEvent(event)
+        if (!signedEvent) {
+          throw new Error("Failed to sign event - check console for details. Your key might need to be re-imported.")
+        }
+        
+        requestBody.signedEvent = signedEvent
+      }
+      
+      const response = await api.post("/api/nostr/post", requestBody)
 
       const data = await response.json()
 
@@ -166,11 +211,25 @@ export function ContentList({ refreshTrigger, isNostrConnected = false }: Conten
 
   if (content.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-400">
-        {isNostrConnected ? (
-          "No content downloaded yet. Add an Instagram URL above to get started."
+      <div className="text-center py-8">
+        {hasNostrAccess ? (
+          <p className="text-gray-400">No content downloaded yet. Add an Instagram URL above to get started.</p>
+        ) : isElectron ? (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <p className="text-gray-400">Import your Nostr key to view your gallery.</p>
+              <p className="text-sm text-gray-500">You need to import your private key to access content management features.</p>
+            </div>
+            <Button
+              onClick={() => router.push('/')}
+              className="bg-purple-600 hover:bg-purple-700 text-white"
+            >
+              <Key className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+          </div>
         ) : (
-          "Connect with NOSTR via Alby to view your gallery."
+          <p className="text-gray-400">Connect with NOSTR via Alby to view your gallery.</p>
         )}
       </div>
     )

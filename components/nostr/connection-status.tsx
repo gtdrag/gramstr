@@ -10,7 +10,7 @@ interface ConnectionStatusProps {
 }
 
 export function ConnectionStatus({ onConnectClick }: ConnectionStatusProps) {
-  const { isExtensionAvailable, isConnected, npub, disconnect } = useNostr()
+  const { isExtensionAvailable, isConnected, npub, disconnect, isElectron } = useNostr()
 
   if (!isConnected) {
     return null // Don't show anything if not connected
@@ -28,7 +28,9 @@ export function ConnectionStatus({ onConnectClick }: ConnectionStatusProps) {
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1.5">
               <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-              <span className="text-sm text-gray-300">Connected to NOSTR</span>
+              <span className="text-sm text-gray-300">
+                {isElectron ? 'Nostr Key Active' : 'Connected to NOSTR'}
+              </span>
             </div>
             {npub && (
               <span className="text-xs text-gray-500">
@@ -36,14 +38,16 @@ export function ConnectionStatus({ onConnectClick }: ConnectionStatusProps) {
               </span>
             )}
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={disconnect}
-            className="text-gray-400 hover:text-white text-xs"
-          >
-            Disconnect
-          </Button>
+          {!isElectron && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={disconnect}
+              className="text-gray-400 hover:text-white text-xs"
+            >
+              Disconnect
+            </Button>
+          )}
         </div>
       </motion.div>
     </AnimatePresence>

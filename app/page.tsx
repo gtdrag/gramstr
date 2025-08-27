@@ -3,11 +3,13 @@
 import { useState, useEffect } from "react"
 import { DownloadForm } from "@/components/content/download-form"
 import { UnifiedAuthSection } from "@/components/auth/unified-auth-section"
-import { ConnectionStatus } from "@/components/nostr/connection-status"
 import { AlbyConnectModal } from "@/components/nostr/alby-connect-modal"
+import { AppLayout } from "@/components/layout/app-layout"
 import { useNostr } from "@/context/nostr-context"
+import { useElectron } from "@/hooks/use-electron"
+import { getElectronNostr } from "@/lib/nostr-electron"
 import { Button } from "@/components/ui/button"
-import { Grid3x3, Check, Circle } from "lucide-react"
+import { Check } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 export default function Page() {
@@ -16,17 +18,23 @@ export default function Page() {
   const [authStatus, setAuthStatus] = useState<{authenticated: boolean, sessionStatus?: string, warningMessage?: string} | null>(null)
   const router = useRouter()
   const { isConnected } = useNostr()
+  const { isElectron } = useElectron()
   
-  // Show Alby modal on first visit if not connected
+  // Check if Electron has a key imported
+  const hasElectronKey = isElectron && getElectronNostr()?.hasKey()
+  // Consider authorized if either web Nostr or Electron key exists
+  const hasNostrAccess = isConnected || hasElectronKey
+  
+  // Show Alby modal on first visit if not connected (only in browser, not Electron)
   useEffect(() => {
     const hasSeenWelcome = localStorage.getItem('has_seen_welcome')
-    if (!hasSeenWelcome && !isConnected) {
+    if (!hasSeenWelcome && !hasNostrAccess && !isElectron) {
       setTimeout(() => {
         setShowAlbyModal(true)
         localStorage.setItem('has_seen_welcome', 'true')
       }, 1000)
     }
-  }, [isConnected])
+  }, [hasNostrAccess, isElectron])
 
   const checkAuthStatus = () => {
     fetch("/api/auth/instagram")
@@ -44,10 +52,7 @@ export default function Page() {
   }
 
   return (
-    <>
-      {/* Connection Status Bar */}
-      <ConnectionStatus onConnectClick={() => setShowAlbyModal(true)} />
-      
+    <AppLayout>
       {/* Alby Modal */}
       <AlbyConnectModal 
         open={showAlbyModal} 
@@ -55,33 +60,20 @@ export default function Page() {
         onSuccess={() => setShowAlbyModal(false)}
       />
       
-      <div className={`min-h-screen bg-gray-950 flex items-center justify-center px-4 py-12 ${isConnected ? 'pt-20' : ''}`}>
-        <div className="w-full max-w-4xl space-y-12 relative">
-        {/* Top Right Buttons */}
-        <div className="absolute top-0 right-0 flex gap-2">
-          <Button
-            onClick={() => router.push('/gallery')}
-            variant="outline"
-            className="bg-gray-800 border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
-          >
-            <Grid3x3 className="h-4 w-4 mr-2" />
-            View Gallery
-          </Button>
-        </div>
-
-        {/* Hero Section */}
-
-        <div className="text-center space-y-6">
-          <h1 className="text-6xl font-bold tracking-tight py-6">
-            <span className="inline-flex items-center">
-              <span className="text-purple-500 leading-none translate-y-2">⚡</span>
-              <span className="h-16 bg-gradient-to-r from-purple-600 via-orange-500 to-pink-500 bg-clip-text text-transparent">gramstr</span>
-            </span>
-          </h1>
-          <p className="text-gray-400 text-xl max-w-2xl mx-auto">
-            Download Instagram content and cross-post to NOSTR
-          </p>
-        </div>
+      <div className="flex items-center justify-center px-4 py-12">
+        <div className="w-full max-w-4xl space-y-12">
+          {/* Hero Section */}
+          <div className="text-center space-y-6">
+            <h1 className="text-6xl font-bold tracking-tight py-6">
+              <span className="inline-flex items-center">
+                <span className="text-purple-500 leading-none translate-y-2">⚡</span>
+                <span className="h-16 bg-gradient-to-r from-purple-600 via-orange-500 to-pink-500 bg-clip-text text-transparent">gramstr</span>
+              </span>
+            </h1>
+            <p className="text-gray-400 text-xl max-w-2xl mx-auto">
+              Download Instagram content and cross-post to NOSTR
+            </p>
+          </div>
 
         {/* Main Content Card */}
         <div className="bg-gray-800 border border-gray-700 rounded-2xl p-12 shadow-2xl space-y-8">
@@ -90,9 +82,9 @@ export default function Page() {
           <div>
             <div className="flex items-center gap-3 mb-4">
               <div className={`flex items-center justify-center w-8 h-8 rounded-full ${
-                isConnected ? 'bg-green-500' : 'bg-gray-600'
+                hasNostrAccess ? 'bg-green-500' : 'bg-gray-600'
               }`}>
-                {isConnected ? (
+                {hasNostrAccess ? (
                   <Check className="w-4 h-4 text-white" />
                 ) : (
                   <span className="text-white text-sm font-semibold">1</span>
@@ -107,34 +99,24 @@ export default function Page() {
           </div>
 
           {/* Step 2: Download */}
-          <div className={isConnected ? '' : 'opacity-50 pointer-events-none'}>
+          <div className={hasNostrAccess ? '' : 'opacity-50 pointer-events-none'}>
             <div className="flex items-center gap-3 mb-4">
               <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-600">
                 <span className="text-white text-sm font-semibold">2</span>
               </div>
               <h2 className="text-2xl font-semibold text-white">Download Content</h2>
             </div>
-            {!isConnected && (
+            {!hasNostrAccess && (
               <div className="mb-4 text-sm text-gray-400 italic">
-                Connect with Alby to enable downloads
+                {isElectron ? 'Import your Nostr key to enable downloads' : 'Connect with Alby to enable downloads'}
               </div>
             )}
             <DownloadForm onDownloadComplete={handleDownloadComplete} />
           </div>
           
-          {/* Gallery Link */}
-          <div className="pt-4 border-t border-gray-700 text-center">
-            <Button
-              onClick={() => router.push('/gallery')}
-              variant="ghost"
-              className="text-gray-400 hover:text-white"
-            >
-              View your content gallery →
-            </Button>
-          </div>
         </div>
       </div>
     </div>
-    </>
+    </AppLayout>
   )
 }

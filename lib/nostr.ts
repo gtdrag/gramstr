@@ -135,6 +135,27 @@ export class NostrService {
     }
   }
 
+  // Publish a pre-signed event (for Electron clients)
+  async publishSignedEvent(signedEvent: any): Promise<string> {
+    try {
+      console.log('📝 Publishing pre-signed NOSTR event...')
+      
+      // Publish to relays
+      const promises = this.pool.publish(this.relays, signedEvent)
+      const results = await Promise.allSettled(promises)
+      
+      console.log('📡 Published to relays:', results)
+      console.log('✅ Pre-signed event published successfully!')
+      
+      // Return the note ID
+      return signedEvent.id
+      
+    } catch (error) {
+      console.error('❌ Failed to publish pre-signed event:', error)
+      throw error
+    }
+  }
+
   // Create and publish a NOSTR note with media
   async publishNote(content: string, mediaUrl?: string): Promise<string> {
     try {

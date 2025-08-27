@@ -2,6 +2,7 @@
   "name": "gramstr-app",
   "version": "2.0.0",
   "private": true,
+  "main": "electron/main.js",
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
@@ -25,7 +26,16 @@
     "backend:dev": "concurrently \"npm run dev\" \"npm run python:start\"",
     "test": "npm run test:unit && npm run test:e2e",
     "test:unit": "jest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "electron": "electron .",
+    "electron:dev": "ELECTRON_IS_DEV=1 electron .",
+    "build:next": "ELECTRON_BUILD=true next build",
+    "build:electron": "npm run build:next && electron-builder",
+    "build:mac": "npm run build:next && electron-builder --mac",
+    "build:win": "npm run build:next && electron-builder --win",
+    "build:linux": "npm run build:next && electron-builder --linux",
+    "dist": "npm run build:next && electron-builder --publish never",
+    "dist:all": "npm run build:next && electron-builder -mwl --publish never"
   },
   "dependencies": {
     "@clerk/backend": "^1.34.0",
@@ -47,6 +57,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
     "drizzle-orm": "^0.44.1",
+    "electron-updater": "^6.6.2",
     "framer-motion": "^12.15.0",
     "lucide-react": "^0.511.0",
     "next": "15.3.3",
@@ -73,6 +84,8 @@
     "concurrently": "^9.1.0",
     "dotenv": "^16.5.0",
     "drizzle-kit": "^0.31.1",
+    "electron": "^30.5.1",
+    "electron-builder": "^24.13.3",
     "eslint": "^9",
     "eslint-config-next": "15.3.3",
     "jest": "^29.7.0",

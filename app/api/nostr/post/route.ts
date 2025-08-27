@@ -10,13 +10,75 @@ export async function POST(request: NextRequest) {
     // Get user ID from NOSTR pubkey or visitor cookie
     const userId = await getUserId()
 
-    const { contentId } = await request.json()
+    const { contentId, signedEvent } = await request.json()
 
     if (!contentId) {
       return NextResponse.json({ error: "Content ID is required" }, { status: 400 })
     }
 
-    // Check for NOSTR keys in environment
+    // Check if this is from Electron with a pre-signed event
+    if (signedEvent) {
+      // Electron client has already signed the event
+      console.log("Processing pre-signed event from Electron client")
+      
+      // Get the content from database
+      const content = await db
+        .select()
+        .from(downloadedContent)
+        .where(eq(downloadedContent.id, contentId))
+        .limit(1)
+
+      if (content.length === 0) {
+        return NextResponse.json({ error: "Content not found" }, { status: 404 })
+      }
+
+      const contentItem = content[0]
+
+      // Validate content belongs to user
+      if (contentItem.userId !== userId) {
+        return NextResponse.json({ error: "Unauthorized access to content" }, { status: 403 })
+      }
+
+      // For pre-signed events, we can publish directly without a NostrService key
+      // We'll use the SimplePool directly
+      const { SimplePool } = await import('nostr-tools')
+      const pool = new SimplePool()
+      const relays = [
+        'wss://relay.damus.io',
+        'wss://nos.lol',
+        'wss://relay.snort.social',
+        'wss://relay.nostr.info',
+        'wss://nostr.wine'
+      ]
+      
+      // Publish the pre-signed event directly
+      const promises = pool.publish(relays, signedEvent)
+      await Promise.allSettled(promises)
+      
+      const noteId = signedEvent.id
+      
+      // Record the cross-post
+      await db.insert(crossPostHistory).values({
+        contentId: contentItem.id,
+        userId,
+        platform: "nostr" as const,
+        platformPostId: noteId,
+        status: "completed",
+        postedAt: new Date(),
+      })
+      
+      // Close the pool
+      pool.close(relays)
+      
+      return NextResponse.json({
+        success: true,
+        noteId,
+        nostrPublicKey: signedEvent.pubkey,
+        message: "Successfully posted to NOSTR!"
+      })
+    }
+
+    // Check for NOSTR keys in environment (for browser clients)
     const nostrPrivateKey = process.env.NOSTR_PRIVATE_KEY
     if (!nostrPrivateKey) {
       return NextResponse.json({ 
