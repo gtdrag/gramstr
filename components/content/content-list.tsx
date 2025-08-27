@@ -111,7 +111,7 @@ export function ContentList({ refreshTrigger, isNostrConnected = false }: Conten
     setNostrPostingIds(prev => new Set(prev).add(contentId))
     
     try {
-      let requestBody: any = { contentId }
+      const requestBody: any = { contentId }
       
       // Check if in Electron with imported key
       if (isElectron) {

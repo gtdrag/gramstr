@@ -83,8 +83,8 @@ export class ElectronNostrService {
         const keyData = JSON.parse(stored)
         if (keyData.nsec) {
           const decoded = nip19.decode(keyData.nsec)
-          if (decoded.type === 'nsec') {
-            this.privateKey = decoded.data as Uint8Array
+          if (decoded.type === 'nsec' as any) {
+            this.privateKey = decoded.data as unknown as Uint8Array
             this.publicKey = getPublicKey(this.privateKey)
             
             // Migrate to encrypted format
@@ -130,8 +130,8 @@ export class ElectronNostrService {
           // Extract pubkey from npub if stored
           if (keyData.npub) {
             const decoded = nip19.decode(keyData.npub)
-            if (decoded.type === 'npub') {
-              this.publicKey = decoded.data as string
+            if (decoded.type === 'npub' as any) {
+              this.publicKey = decoded.data as unknown as string
             }
           }
         } catch (e) {

@@ -114,7 +114,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
   // Convert hex pubkey to npub format
   const npub = publicKey ? (
     isElectron ? 
-      getElectronNostr()?.getNpub() : 
+      getElectronNostr()?.getNpub() || null : 
       nostrProvider.hexToNpub(publicKey)
   ) : null
 

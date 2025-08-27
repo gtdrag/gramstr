@@ -46,3 +46,4 @@ next-env.d.ts
 /downloads/
 /split-repos.sh
 /app/api/v2/
+dist/

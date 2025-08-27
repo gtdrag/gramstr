@@ -29,7 +29,7 @@
     "test:e2e": "playwright test",
     "electron": "electron .",
     "electron:dev": "ELECTRON_IS_DEV=1 electron .",
-    "build:next": "ELECTRON_BUILD=true next build",
+    "build:next": "next build",
     "build:electron": "npm run build:next && electron-builder",
     "build:mac": "npm run build:next && electron-builder --mac",
     "build:win": "npm run build:next && electron-builder --win",

@@ -1,4 +1,4 @@
-appId: com.yourcompany.gramstr
+appId: com.gramstr.app
 productName: Gramstr
 directories:
   output: dist
@@ -6,12 +6,14 @@ directories:
 
 files:
   - electron/**/*
-  - out/**/*
+  - .next/**/*
+  - public/**/*
   - backend/**/*
   - "!backend/venv/**/*"
   - "!backend/__pycache__/**/*"
   - "!backend/*.txt"
   - package.json
+  - package-lock.json
   - node_modules/**/*
 
 extraResources:
@@ -83,6 +85,7 @@ dmg:
       type: file
 
 publish:
-  - provider: generic
-    url: https://your-website.com/downloads/
-    channel: latest
+  - provider: github
+    owner: yourusername
+    repo: gramstr
+    releaseType: release

@@ -37,15 +37,11 @@ function startPythonBackend() {
   }
 }
 
-// Start Next.js in development
-function startNextDev(callback) {
-  if (!isDev) {
-    if (callback) callback();
-    return;
-  }
-
-  console.log('Starting Next.js dev server...');
-  nextServer = spawn('npm', ['run', 'dev'], {
+// Start Next.js server
+function startNextServer(callback) {
+  console.log('Starting Next.js server...');
+  const command = isDev ? 'dev' : 'start';
+  nextServer = spawn('npm', ['run', command], {
     shell: true,
     cwd: path.join(__dirname, '..'),
     stdio: 'pipe'
@@ -92,19 +88,16 @@ function createWindow() {
 
   // Load the app
   const loadApp = () => {
-    const appUrl = isDev ? 'http://localhost:3000' : `file://${path.join(__dirname, '../out/index.html')}`;
+    // Always use localhost:3000 since we're running a server
+    const appUrl = 'http://localhost:3000';
     mainWindow.loadURL(appUrl).catch((err) => {
       console.error('Failed to load:', err);
       setTimeout(() => mainWindow.reload(), 3000);
     });
   };
 
-  if (isDev) {
-    // In dev, wait a bit for server
-    setTimeout(loadApp, 3000);
-  } else {
-    loadApp();
-  }
+  // Always wait for server to start
+  setTimeout(loadApp, 3000);
 
   // External links
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -231,7 +224,7 @@ app.whenReady().then(() => {
       createMenu();
     }).on('error', () => {
       // Start Next.js then create window
-      startNextDev(() => {
+      startNextServer(() => {
         createWindow();
         createMenu();
       });
