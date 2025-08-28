@@ -3,7 +3,8 @@ import { NextResponse } from "next/server"
 export async function GET() {
   try {
     // Always check with backend API - it's the single source of truth
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+    // In Electron, always use localhost:8000 where Python backend runs
+    const backendUrl = 'http://localhost:8000'
     
     try {
       const response = await fetch(`${backendUrl}/auth/status`)
