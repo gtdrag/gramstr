@@ -10,9 +10,7 @@ files:
   - "!.next/cache/**/*"
   - public/**/*
   - backend/**/*
-  - "!backend/venv/**/*"
   - "!backend/__pycache__/**/*"
-  - "!backend/*.txt"
   - package.json
   - package-lock.json
   - node_modules/**/*
@@ -25,8 +23,11 @@ extraResources:
     to: backend
     filter:
       - "**/*"
-      - "!venv/**/*"
       - "!__pycache__/**/*"
+  - from: venv
+    to: venv
+    filter:
+      - "**/*"
 
 mac:
   category: public.app-category.social-networking
