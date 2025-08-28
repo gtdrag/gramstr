@@ -396,9 +396,13 @@ async def download_content(request: DownloadRequest):
                     print("🎠 Trying gallery-dl to get all carousel content...")
                     
                     try:
-                        # Try gallery-dl for this URL
+                        # Try gallery-dl for this URL - use venv path if available
+                        backend_dir = Path(__file__).parent
+                        venv_gallery_dl = backend_dir.parent / "venv" / "bin" / "gallery-dl"
+                        gallery_cmd = str(venv_gallery_dl) if venv_gallery_dl.exists() else "gallery-dl"
+                        
                         gallery_result = subprocess.run([
-                            "gallery-dl", "-d", str(download_dir), request.url, "--cookies", cookies_path
+                            gallery_cmd, "-d", str(download_dir), request.url, "--cookies", cookies_path
                         ], capture_output=True, text=True, timeout=90)
                         
                         if gallery_result.returncode == 0:
@@ -561,9 +565,13 @@ async def download_content(request: DownloadRequest):
                     
                     if cookies_path:
                         try:
-                            # Try gallery-dl as fallback for carousels
+                            # Try gallery-dl as fallback for carousels - use venv path if available  
+                            backend_dir = Path(__file__).parent
+                            venv_gallery_dl = backend_dir.parent / "venv" / "bin" / "gallery-dl"
+                            gallery_cmd = str(venv_gallery_dl) if venv_gallery_dl.exists() else "gallery-dl"
+                            
                             gallery_result = subprocess.run([
-                                "gallery-dl", "-d", str(download_dir), request.url, "--cookies", cookies_path
+                                gallery_cmd, "-d", str(download_dir), request.url, "--cookies", cookies_path
                             ], capture_output=True, text=True, timeout=90)
                             
                             if gallery_result.returncode == 0:
@@ -706,8 +714,12 @@ async def download_carousel_content(request: DownloadRequest):
         if not cookies_path:
             raise HTTPException(status_code=400, detail="Gallery-dl requires Instagram authentication. Please upload your cookies first.")
         
-        # Use gallery-dl to download
-        cmd = ["gallery-dl", "-d", str(download_dir), request.url, "--cookies", cookies_path]
+        # Use gallery-dl to download - use venv path if available
+        backend_dir = Path(__file__).parent
+        venv_gallery_dl = backend_dir.parent / "venv" / "bin" / "gallery-dl"
+        gallery_cmd = str(venv_gallery_dl) if venv_gallery_dl.exists() else "gallery-dl"
+        
+        cmd = [gallery_cmd, "-d", str(download_dir), request.url, "--cookies", cookies_path]
         print(f"Running gallery-dl: {' '.join(cmd)}")
         
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
