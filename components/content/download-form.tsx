@@ -129,6 +129,42 @@ export function DownloadForm({ onDownloadComplete }: DownloadFormProps) {
           </>
         )}
       </Button>
+      
+      {/* Cookie age warning */}
+      {authStatus && authStatus.warningMessage && (
+        <div className="mt-4 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
+          <div className="flex items-start space-x-2">
+            <Info className="h-5 w-5 text-yellow-500 mt-0.5 flex-shrink-0" />
+            <div className="space-y-1">
+              <p className="text-sm text-yellow-200">
+                {authStatus.warningMessage}
+              </p>
+              {authStatus.sessionAge !== null && (
+                <p className="text-xs text-gray-400">
+                  Cookies are {authStatus.sessionAge} days old
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Session expired warning */}
+      {authStatus && authStatus.sessionStatus === 'expired' && (
+        <div className="mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30">
+          <div className="flex items-start space-x-2">
+            <Shield className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+            <div className="space-y-2">
+              <p className="text-sm text-red-200 font-medium">
+                Instagram session expired - downloads may fail
+              </p>
+              <p className="text-xs text-gray-400">
+                Please upload fresh Instagram cookies to restore full access
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   )
 }
