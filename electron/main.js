@@ -112,7 +112,7 @@ function startPythonBackend() {
 }
 
 // Start Next.js server
-function startNextServer(callback) {
+async function startNextServer(callback) {
   console.log('=== STARTING NEXT.JS SERVER ===');
   console.log('isDev:', isDev);
   console.log('__dirname:', __dirname);
@@ -165,8 +165,40 @@ function startNextServer(callback) {
     console.log('- node_modules exists:', fs.existsSync(path.join(appPath, 'node_modules')));
     console.log('- electron dir:', fs.existsSync(path.join(appPath, 'electron')));
     
+    // Function to check if port is available
+    const net = require('net');
+    const checkPort = (port) => new Promise((resolve) => {
+      const server = net.createServer();
+      server.once('error', () => resolve(false));
+      server.once('listening', () => {
+        server.close();
+        resolve(true);
+      });
+      server.listen(port);
+    });
+    
+    // Find an available port starting from 3000
+    let nextPort = 3000;
+    let portAvailable = await checkPort(nextPort);
+    let attempts = 0;
+    while (!portAvailable && attempts < 10) {
+      console.log(`Port ${nextPort} is in use, trying ${nextPort + 1}...`);
+      nextPort++;
+      portAvailable = await checkPort(nextPort);
+      attempts++;
+    }
+    
+    if (!portAvailable) {
+      console.error('Could not find available port after 10 attempts');
+      global.updateStatus(2, 'error', 'No ports available');
+      if (callback) callback();
+      return;
+    }
+    
+    console.log(`Using port ${nextPort} for Next.js server`);
+    
     // Read .env.local if it exists
-    let envVars = { ...process.env, PORT: '3000', NODE_ENV: 'production' };
+    let envVars = { ...process.env, PORT: String(nextPort), NODE_ENV: 'production' };
     const envPath = path.join(appPath, '.env.local');
     
     try {
@@ -216,8 +248,9 @@ function startNextServer(callback) {
         if (!serverReady && output.includes('Listening on')) {
           serverReady = true;
           console.log('Next.js server is ready');
-          global.updateStatus(2, 'success', 'Port 3000');
-          if (callback) setTimeout(callback, 1000);
+          global.updateStatus(2, 'success', `Port ${nextPort}`);
+          global.nextPort = nextPort; // Store for app loading
+          if (callback) setTimeout(() => callback(nextPort), 1000);
         }
       });
       
@@ -393,12 +426,13 @@ function createWindow() {
   // Function to attempt loading the app
   let retryCount = 0;
   const maxRetries = 30; // 30 seconds max
-  let currentPort = 3000; // Track which port we're checking
   
-  const tryLoadApp = () => {
+  const tryLoadApp = (specifiedPort) => {
     const net = require('net');
+    // Use the port passed from Next.js startup, or try to detect
+    let currentPort = specifiedPort || global.nextPort || 3000;
     
-    // Try ports in order: 3000, then 3001
+    // Try the specified port first, then scan if needed
     const tryPort = (port) => {
       const client = new net.Socket();
       
@@ -612,8 +646,8 @@ app.whenReady().then(() => {
   
   // Start Next.js and load URL when ready
   console.log('Starting Next.js server...');
-  startNextServer(() => {
-    console.log('Next.js server ready, loading app...');
+  startNextServer((port) => {
+    console.log(`Next.js server ready on port ${port}, loading app...`);
   });
 });
 
