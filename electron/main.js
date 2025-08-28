@@ -6,7 +6,19 @@ const { spawn } = require('child_process');
 app.commandLine.appendSwitch('disable-gpu-sandbox');
 app.commandLine.appendSwitch('no-sandbox');
 
-const isDev = process.env.NODE_ENV !== 'production' || process.env.ELECTRON_IS_DEV === '1';
+const isDev = process.env.ELECTRON_IS_DEV === '1' || (!app.isPackaged && process.env.NODE_ENV !== 'production');
+
+// Helper to get correct path for packaged app
+function getAppPath() {
+  // In production, everything is unpacked due to asarUnpack: "**/*"
+  if (app.isPackaged) {
+    // The app files are in Resources/app.asar.unpacked
+    const resourcesPath = process.resourcesPath;
+    return path.join(resourcesPath, 'app.asar.unpacked');
+  }
+  // Development mode
+  return path.join(__dirname, '..');
+}
 
 let mainWindow = null;
 let pythonServer = null;
@@ -15,9 +27,14 @@ let nextServer = null;
 // Start Python backend
 function startPythonBackend() {
   try {
-    const scriptPath = path.join(__dirname, '..', 'backend', 'main.py');
+    // In production, backend is in extraResources, not in asar
+    const backendPath = isDev 
+      ? path.join(__dirname, '..', 'backend')
+      : path.join(process.resourcesPath, 'backend');
+    
+    const scriptPath = path.join(backendPath, 'main.py');
     pythonServer = spawn('python', [scriptPath], {
-      cwd: path.join(__dirname, '..'),
+      cwd: backendPath,
       env: { ...process.env, PYTHONUNBUFFERED: '1' }
     });
     
@@ -39,27 +56,127 @@ function startPythonBackend() {
 
 // Start Next.js server
 function startNextServer(callback) {
-  console.log('Starting Next.js server...');
-  const command = isDev ? 'dev' : 'start';
-  nextServer = spawn('npm', ['run', command], {
-    shell: true,
-    cwd: path.join(__dirname, '..'),
-    stdio: 'pipe'
-  });
+  console.log('=== STARTING NEXT.JS SERVER ===');
+  console.log('isDev:', isDev);
+  console.log('__dirname:', __dirname);
+  
+  if (isDev) {
+    // Development mode - use npm run dev
+    console.log('Running in DEVELOPMENT mode');
+    nextServer = spawn('npm', ['run', 'dev'], {
+      shell: true,
+      cwd: getAppPath(),
+      stdio: 'pipe'
+    });
+    
+    let ready = false;
+    nextServer.stdout.on('data', (data) => {
+      const output = data.toString();
+      console.log('Next.js:', output);
+      if (!ready && (output.includes('Ready') || output.includes('started server') || output.includes('Listening on'))) {
+        ready = true;
+        console.log('Next.js is ready');
+        if (callback) setTimeout(callback, 2000);
+      }
+    });
 
-  let ready = false;
-  nextServer.stdout.on('data', (data) => {
-    const output = data.toString();
-    if (!ready && (output.includes('Ready') || output.includes('started server'))) {
-      ready = true;
-      console.log('Next.js is ready');
-      if (callback) setTimeout(callback, 2000);
+    nextServer.stderr.on('data', (data) => {
+      console.error(`Next.js Error: ${data}`);
+    });
+  } else {
+    // Production mode
+    console.log('Running in PRODUCTION mode');
+    const appPath = getAppPath();
+    console.log('App path:', appPath);
+    console.log('Process resource path:', process.resourcesPath);
+    console.log('__dirname:', __dirname);
+    console.log('app.isPackaged:', app.isPackaged);
+    
+    const fs = require('fs');
+    
+    // Check what exists
+    console.log('Checking production paths:');
+    console.log('- appPath exists:', fs.existsSync(appPath));
+    console.log('- .next exists:', fs.existsSync(path.join(appPath, '.next')));
+    console.log('- node_modules exists:', fs.existsSync(path.join(appPath, 'node_modules')));
+    console.log('- electron dir:', fs.existsSync(path.join(appPath, 'electron')));
+    
+    // Read .env.local if it exists
+    let envVars = { ...process.env, PORT: '3000', NODE_ENV: 'production' };
+    const envPath = path.join(appPath, '.env.local');
+    
+    try {
+      if (fs.existsSync(envPath)) {
+        console.log('Loading environment variables...');
+        const envContent = fs.readFileSync(envPath, 'utf8');
+        envContent.split('\n').forEach(line => {
+          const [key, ...valueParts] = line.split('=');
+          if (key && valueParts.length > 0) {
+            envVars[key.trim()] = valueParts.join('=').trim();
+          }
+        });
+      } else {
+        // Add hardcoded env vars for production
+        envVars.DATABASE_URL = 'postgresql://postgres:W5FKrYBa!7caR62@db.jrhyqcugjnddbbmbplbk.supabase.co:5432/postgres';
+        envVars.NEXT_PUBLIC_SUPABASE_URL = 'https://jrhyqcugjnddbbmbplbk.supabase.co';
+        envVars.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInT5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpyaHlxY3VnanRkZGJibWJwbGJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5ODQxNTUsImV4cCI6MjA1MDU2MDE1NX0.lhsOAuFFOiN0o9-S1HEwJwCtWBvlQ-Lzj7R2qlGC1C8';
+      }
+    } catch (err) {
+      console.error('Error reading .env.local:', err);
     }
-  });
-
-  nextServer.stderr.on('data', (data) => {
-    console.error(`Next.js: ${data}`);
-  });
+    
+    // Use Electron's fork to run Node.js code
+    const { fork } = require('child_process');
+    const nextStartScript = path.join(appPath, 'electron', 'start-next-prod.js');
+    
+    console.log('Starting Next.js server with Electron fork...');
+    console.log('Script path:', nextStartScript);
+    console.log('Script exists:', fs.existsSync(nextStartScript));
+    console.log('Working directory:', appPath);
+    
+    try {
+      // Fork the script using Electron's Node runtime
+      nextServer = fork(nextStartScript, [], {
+        cwd: appPath,
+        env: envVars,
+        silent: true // Capture output
+      });
+      
+      console.log('Next.js spawn successful, PID:', nextServer.pid);
+      
+      // Handle output
+      let serverReady = false;
+      nextServer.stdout.on('data', (data) => {
+        const output = data.toString();
+        console.log('Next.js:', output);
+        if (!serverReady && output.includes('Listening on')) {
+          serverReady = true;
+          console.log('Next.js server is ready');
+          if (callback) setTimeout(callback, 1000);
+        }
+      });
+      
+      nextServer.stderr.on('data', (data) => {
+        console.error('Next.js Error:', data.toString());
+      });
+      
+      nextServer.on('exit', (code, signal) => {
+        console.error('Next.js process exited with code:', code, 'signal:', signal);
+      });
+      
+      nextServer.on('error', (err) => {
+        console.error('Next.js spawn error:', err);
+      });
+    } catch (spawnError) {
+      console.error('Failed to spawn Next.js:', spawnError);
+    }
+    
+    // Fallback if server doesn't report ready
+    setTimeout(() => {
+      console.log('Proceeding after timeout...');
+      if (callback) callback();
+    }, 8000);
+  }
 }
 
 // Create main window
@@ -67,37 +184,91 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
-    minWidth: 1024,
-    minHeight: 768,
+    show: true, // SHOW IMMEDIATELY
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      sandbox: false,  // Changed to false to allow preload script to work
-      preload: path.join(__dirname, 'preload.js'),
-      // Allow loading extensions in dev mode
-      webSecurity: isDev ? false : true
-    },
-    backgroundColor: '#000000',
-    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
-    show: false
+      webSecurity: false, // Allow loading from localhost
+      preload: path.join(__dirname, 'preload.js')
+    }
   });
 
-  mainWindow.once('ready-to-show', () => {
-    mainWindow.show();
-  });
+  // Initially show a simple loading message
+  const loadingHTML = `<!DOCTYPE html>
+<html>
+<head>
+<style>
+body { background: #000; color: #fff; font-family: system-ui; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+</style>
+</head>
+<body>
+<h2>Starting Gramstr...</h2>
+</body>
+</html>`;
+  
+  mainWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(loadingHTML));
 
-  // Load the app
-  const loadApp = () => {
-    // Always use localhost:3000 since we're running a server
-    const appUrl = 'http://localhost:3000';
-    mainWindow.loadURL(appUrl).catch((err) => {
-      console.error('Failed to load:', err);
-      setTimeout(() => mainWindow.reload(), 3000);
+  // Function to attempt loading the app
+  let retryCount = 0;
+  const maxRetries = 30; // 30 seconds max
+  
+  const tryLoadApp = () => {
+    const net = require('net');
+    const client = new net.Socket();
+    
+    client.setTimeout(500);
+    client.on('connect', () => {
+      console.log('Port 3000 is OPEN - loading app');
+      client.destroy();
+      
+      // Load the gallery page directly for Electron app
+      mainWindow.loadURL('http://localhost:3000/gallery')
+        .then(() => {
+          console.log('✅ Successfully loaded app!');
+        })
+        .catch((err) => {
+          console.error('Failed to load app:', err.message);
+          // Retry after a delay
+          if (retryCount < maxRetries) {
+            setTimeout(tryLoadApp, 1000);
+          }
+        });
     });
+    
+    client.on('error', () => {
+      client.destroy();
+      retryCount++;
+      if (retryCount < maxRetries) {
+        console.log(`Server not ready, retry ${retryCount}/${maxRetries}...`);
+        setTimeout(tryLoadApp, 1000);
+      } else {
+        console.error('Failed to connect after max retries');
+        // Show error page
+        const errorHTML = `<!DOCTYPE html>
+<html>
+<body style="background:#000;color:#fff;font-family:system-ui;padding:40px;">
+<h2>Failed to start server</h2>
+<p>Please try restarting the application.</p>
+<p style="color:#888;font-size:14px;">If the problem persists, try running from terminal for debugging.</p>
+</body>
+</html>`;
+        mainWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(errorHTML));
+      }
+    });
+    
+    client.on('timeout', () => {
+      client.destroy();
+      retryCount++;
+      if (retryCount < maxRetries) {
+        setTimeout(tryLoadApp, 1000);
+      }
+    });
+    
+    client.connect(3000, 'localhost');
   };
-
-  // Always wait for server to start
-  setTimeout(loadApp, 3000);
+  
+  // Start trying after a short delay
+  setTimeout(tryLoadApp, 3000);
 
   // External links
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -149,7 +320,7 @@ function createMenu() {
           label: 'Open in Web Browser (for Alby)',
           accelerator: 'CmdOrCtrl+Shift+B',
           click: () => {
-            shell.openExternal('http://localhost:3000');
+            shell.openExternal('http://localhost:3000/gallery');
           }
         },
         { type: 'separator' },
@@ -213,26 +384,27 @@ if (!gotTheLock) {
 
 // App events
 app.whenReady().then(() => {
+  console.log('=== ELECTRON APP READY ===');
+  console.log('Platform:', process.platform);
+  console.log('App path:', app.getPath('exe'));
+  console.log('Resources path:', process.resourcesPath);
+  console.log('Is packaged:', app.isPackaged);
+  
+  createMenu();
+  
+  // Create window immediately but don't load URL yet
+  console.log('=== CREATING WINDOW ===');
+  createWindow();
+  
+  // Start Python backend
+  console.log('Starting Python backend...');
   startPythonBackend();
   
-  if (isDev) {
-    // Check if Next.js is already running
-    const http = require('http');
-    http.get('http://localhost:3000', () => {
-      console.log('Next.js already running');
-      createWindow();
-      createMenu();
-    }).on('error', () => {
-      // Start Next.js then create window
-      startNextServer(() => {
-        createWindow();
-        createMenu();
-      });
-    });
-  } else {
-    createWindow();
-    createMenu();
-  }
+  // Start Next.js and load URL when ready
+  console.log('Starting Next.js server...');
+  startNextServer(() => {
+    console.log('Next.js server ready, loading app...');
+  });
 });
 
 app.on('window-all-closed', () => {
