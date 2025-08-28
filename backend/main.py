@@ -489,7 +489,11 @@ async def download_content(request: DownloadRequest):
                     "rate-limit reached",
                     "instagram api is not granting access",
                     "unable to extract shared data",
-                    "main webpage is locked behind the login page"
+                    "main webpage is locked behind the login page",
+                    "empty media response",
+                    "instagram sent an empty",
+                    "restricted post",  # This often appears when cookies are expired
+                    "you must be 18 years old"  # Misleading error that appears with expired cookies
                 ]
                 
                 is_auth_error = any(pattern in error_str.lower() for pattern in auth_error_patterns)
@@ -497,9 +501,10 @@ async def download_content(request: DownloadRequest):
                 if is_auth_error:
                     # Provide helpful error message about cookies
                     error_message = (
-                        "Download failed - this is likely due to expired or missing Instagram cookies. "
+                        "Download failed - your Instagram cookies have expired. "
                         "Please refresh your Instagram authentication by uploading new cookies. "
-                        "Instagram sessions typically expire after 2-3 days of use."
+                        "Instagram sessions typically expire after 2-3 days. "
+                        "Note: Even if the error mentions age restriction, this is usually due to expired cookies."
                     )
                     print(f"🔐 Authentication/cookie issue detected: {error_message}")
                     raise HTTPException(status_code=401, detail=error_message)
