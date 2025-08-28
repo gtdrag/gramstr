@@ -482,11 +482,32 @@ async def download_content(request: DownloadRequest):
                 error_str = str(e)
                 print(f"yt-dlp download failed: {error_str}")
                 
+                # Check for common authentication/cookie issues
+                auth_error_patterns = [
+                    "login required",
+                    "requested content is not available",
+                    "rate-limit reached",
+                    "instagram api is not granting access",
+                    "unable to extract shared data",
+                    "main webpage is locked behind the login page"
+                ]
+                
+                is_auth_error = any(pattern in error_str.lower() for pattern in auth_error_patterns)
+                
+                if is_auth_error:
+                    # Provide helpful error message about cookies
+                    error_message = (
+                        "Download failed - this is likely due to expired or missing Instagram cookies. "
+                        "Please refresh your Instagram authentication by uploading new cookies. "
+                        "Instagram sessions typically expire after 2-3 days of use."
+                    )
+                    print(f"🔐 Authentication/cookie issue detected: {error_message}")
+                    raise HTTPException(status_code=401, detail=error_message)
+                
                 # Check if this might be a carousel/gallery that yt-dlp can't handle
                 # These errors are common for gallery posts
                 if (("No video formats found" in error_str or 
-                     "empty media response" in error_str.lower() or
-                     "instagram api is not granting access" in error_str.lower()) 
+                     "empty media response" in error_str.lower()) 
                     and not is_story):
                     print("🎠 yt-dlp failed - might be a carousel or image post, trying gallery-dl...")
                     
@@ -622,7 +643,8 @@ async def download_content(request: DownloadRequest):
                     "unauthorized access",
                     "this content is unreachable",
                     "content is not available",
-                    "login to access"
+                    "login to access",
+                    "rate-limit reached"
                 ]):
                     # Mark session as invalid in status file ONLY if we had cookies
                     try:
@@ -632,7 +654,7 @@ async def download_content(request: DownloadRequest):
                         status_data = {
                             "last_validation": datetime.datetime.now().isoformat(),
                             "is_valid": False,
-                            "last_error": "Session expired or authentication invalid"
+                            "last_error": "Session expired or authentication invalid - please refresh Instagram cookies"
                         }
                         with open(status_file, 'w') as f:
                             json.dump(status_data, f)
