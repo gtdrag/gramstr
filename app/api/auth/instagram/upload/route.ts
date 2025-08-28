@@ -69,16 +69,24 @@ export async function POST(request: NextRequest) {
     console.log(`Received ${cookies.length} cookies for user ${userId}`)
     
     // Always send cookies to the backend API - it's the single source of truth
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+    // In Electron, always use localhost:8000 where Python backend runs
+    const backendUrl = 'http://localhost:8000'
     
     try {
+      // Add timeout to prevent hanging (5 seconds)
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 5000)
+      
       const response = await fetch(`${backendUrl}/upload-cookies`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: content
+        body: content,
+        signal: controller.signal
       })
+      
+      clearTimeout(timeoutId)
       
       if (!response.ok) {
         const errorText = await response.text()
@@ -88,10 +96,19 @@ export async function POST(request: NextRequest) {
           { status: response.status }
         )
       }
-    } catch (backendError) {
+    } catch (backendError: any) {
       console.error("Failed to send cookies to backend:", backendError)
+      
+      // Check if it was a timeout
+      if (backendError.name === 'AbortError') {
+        return NextResponse.json(
+          { error: "Backend service timeout - please ensure Python backend is running" },
+          { status: 504 }
+        )
+      }
+      
       return NextResponse.json(
-        { error: "Failed to connect to backend service" },
+        { error: "Failed to connect to backend service at localhost:8000" },
         { status: 503 }
       )
     }
