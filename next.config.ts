@@ -2,12 +2,12 @@ import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
   devIndicators: false,
-  output: process.env.ELECTRON_BUILD === 'true' ? 'export' : undefined,
+  // Normal build, no special config
+  output: undefined,
   images: {
-    unoptimized: process.env.ELECTRON_BUILD === 'true'
+    unoptimized: false
   },
-  // For Electron, we need to handle routing differently
-  trailingSlash: process.env.ELECTRON_BUILD === 'true',
+  trailingSlash: false
 }
 
 export default nextConfig

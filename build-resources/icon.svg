@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="1024" height="1024" rx="200" fill="#0a0a0a"/>
+  
+  <!-- Gradient definition -->
+  <defs>
+    <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#9333ea;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#f97316;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ec4899;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="boltGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#a855f7;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#9333ea;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Lightning bolt -->
+  <path d="M 600 200 L 350 550 L 500 550 L 424 824 L 674 474 L 524 474 Z" 
+        fill="url(#boltGradient)" 
+        stroke="#7c3aed" 
+        stroke-width="8"/>
+  
+  <!-- Letter G stylized -->
+  <path d="M 512 320 
+           Q 320 320, 320 512
+           Q 320 704, 512 704
+           Q 640 704, 704 640
+           L 704 576
+           L 512 576
+           L 512 480
+           L 800 480
+           L 800 640
+           Q 736 800, 512 800
+           Q 224 800, 224 512
+           Q 224 224, 512 224
+           Q 672 224, 768 320
+           L 704 384
+           Q 640 320, 512 320"
+        fill="url(#logoGradient)" 
+        opacity="0.9"/>
+</svg>
