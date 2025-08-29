@@ -122,16 +122,32 @@ export async function POST(request: NextRequest) {
     console.log('Content item details:', {
       isCarousel: contentItem.isCarousel,
       carouselFiles: contentItem.carouselFiles,
+      supabaseCarouselUrls: contentItem.supabaseCarouselUrls,
       filePath: contentItem.filePath,
+      supabaseFileUrl: contentItem.supabaseFileUrl,
       contentType: contentItem.contentType
     })
     
-    if (contentItem.isCarousel && contentItem.carouselFiles) {
+    // Log the actual values to debug
+    console.log('DEBUG - supabaseCarouselUrls value:', JSON.stringify(contentItem.supabaseCarouselUrls))
+    console.log('DEBUG - carouselFiles value:', JSON.stringify(contentItem.carouselFiles))
+    
+    // Check for carousel content - use Supabase URLs if available, otherwise fall back to carouselFiles
+    const carouselUrls = contentItem.supabaseCarouselUrls || contentItem.carouselFiles
+    
+    console.log('🔍 NOSTR POST DEBUG:')
+    console.log('  - Is Carousel:', contentItem.isCarousel)
+    console.log('  - Carousel URLs type:', typeof carouselUrls)
+    console.log('  - Carousel URLs:', JSON.stringify(carouselUrls, null, 2))
+    
+    if (contentItem.isCarousel && carouselUrls) {
       // Upload all carousel files to get public URLs
-      console.log(`Processing carousel with ${(contentItem.carouselFiles as string[]).length} files...`)
+      console.log(`Processing carousel with ${(carouselUrls as string[]).length} files...`)
       const publicUrls: string[] = []
       
-      for (const file of contentItem.carouselFiles as string[]) {
+      for (const file of carouselUrls as string[]) {
+        console.log(`  📁 Processing file: ${file}`)
+        console.log(`     Is URL: ${file.startsWith('http://') || file.startsWith('https://')}`)
         try {
           // Check if this is already a Supabase URL or just a filename
           if (file.startsWith('http://') || file.startsWith('https://')) {
@@ -192,10 +208,13 @@ export async function POST(request: NextRequest) {
       // Single media file - get public URL
       let publicUrl: string
       
-      // Check if filePath is already a Supabase URL or just a filename
-      if (contentItem.filePath && (contentItem.filePath.startsWith('http://') || contentItem.filePath.startsWith('https://'))) {
+      // Use supabaseFileUrl if available, otherwise fall back to filePath
+      const mediaUrl = contentItem.supabaseFileUrl || contentItem.filePath
+      
+      // Check if we have a Supabase URL or just a filename
+      if (mediaUrl && (mediaUrl.startsWith('http://') || mediaUrl.startsWith('https://'))) {
         // Already a Supabase URL, use it directly - no need to re-upload!
-        publicUrl = contentItem.filePath
+        publicUrl = mediaUrl
         console.log(`Using existing Supabase URL: ${publicUrl}`)
       } else {
         // Just a filename, need to fetch from backend and upload

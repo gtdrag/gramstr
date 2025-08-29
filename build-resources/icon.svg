@@ -1,44 +1,84 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
-  <!-- Background -->
-  <rect width="1024" height="1024" rx="200" fill="#0a0a0a"/>
-  
-  <!-- Gradient definition -->
   <defs>
-    <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#9333ea;stop-opacity:1" />
-      <stop offset="50%" style="stop-color:#f97316;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#ec4899;stop-opacity:1" />
-    </linearGradient>
+    <!-- Instagram-style radial gradient -->
+    <radialGradient id="instagramGradient" cx="30%" cy="107%" r="150%">
+      <stop offset="0%" style="stop-color:#feda75"/>
+      <stop offset="10%" style="stop-color:#fa7e1e"/>
+      <stop offset="25%" style="stop-color:#d62976"/>
+      <stop offset="40%" style="stop-color:#e1306c"/>
+      <stop offset="60%" style="stop-color:#962fbf"/>
+      <stop offset="100%" style="stop-color:#4f5bd5"/>
+    </radialGradient>
     
-    <linearGradient id="boltGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#a855f7;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#9333ea;stop-opacity:1" />
-    </linearGradient>
+    <!-- Drop shadow for better visibility -->
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="4"/>
+      <feOffset dx="0" dy="2" result="offsetblur"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.15"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
   </defs>
   
-  <!-- Lightning bolt -->
-  <path d="M 600 200 L 350 550 L 500 550 L 424 824 L 674 474 L 524 474 Z" 
-        fill="url(#boltGradient)" 
-        stroke="#7c3aed" 
-        stroke-width="8"/>
+  <!-- Rounded square background with Instagram gradient -->
+  <rect x="0" y="0" width="1024" height="1024" rx="230" ry="230" fill="url(#instagramGradient)"/>
   
-  <!-- Letter G stylized -->
-  <path d="M 512 320 
-           Q 320 320, 320 512
-           Q 320 704, 512 704
-           Q 640 704, 704 640
-           L 704 576
-           L 512 576
-           L 512 480
-           L 800 480
-           L 800 640
-           Q 736 800, 512 800
-           Q 224 800, 224 512
-           Q 224 224, 512 224
-           Q 672 224, 768 320
-           L 704 384
-           Q 640 320, 512 320"
-        fill="url(#logoGradient)" 
-        opacity="0.9"/>
+  <!-- Clean ostrich silhouette matching user's design -->
+  <g transform="translate(512, 512)" filter="url(#shadow)">
+    <!-- Ostrich body - main rounded body -->
+    <ellipse cx="-20" cy="50" rx="80" ry="120" fill="white"/>
+    
+    <!-- Ostrich neck - long curved S-shape -->
+    <path d="
+      M -80,-70
+      C -60,-120 -20,-140 20,-120
+      C 40,-110 45,-90 40,-70
+      C 35,-50 25,-40 10,-35
+      C -5,-30 -20,-25 -35,-20
+      C -50,-15 -65,-10 -75,0
+      C -85,10 -90,25 -85,40
+      C -80,50 -70,55 -60,50
+      L -20,30
+    " fill="white"/>
+    
+    <!-- Small ostrich head -->
+    <ellipse cx="38" cy="-75" rx="25" ry="20" fill="white"/>
+    
+    <!-- Beak pointing right -->
+    <path d="
+      M 63,-75
+      L 85,-70
+      L 63,-65
+      Z
+    " fill="white"/>
+    
+    <!-- Ostrich legs - two thin legs -->
+    <rect x="-40" y="170" width="8" height="100" fill="white"/>
+    <rect x="-10" y="170" width="8" height="100" fill="white"/>
+    
+    <!-- Ostrich feet - simple claws -->
+    <path d="
+      M -45,270
+      L -55,285
+      M -40,270  
+      L -30,285
+      M -35,270
+      L -25,285
+      
+      M -15,270
+      L -25,285
+      M -10,270
+      L 0,285
+      M -5,270
+      L 5,285
+    " 
+    stroke="white" 
+    stroke-width="6" 
+    stroke-linecap="round"/>
+  </g>
 </svg>
