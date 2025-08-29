@@ -39,6 +39,9 @@ interface ContentItem {
   isVideo: boolean
   isCarousel: boolean
   carouselFiles: string[] | null
+  supabaseFileUrl?: string | null
+  supabaseThumbnailUrl?: string | null
+  supabaseCarouselUrls?: string[] | null
 }
 
 interface ContentListProps {
@@ -133,11 +136,31 @@ export function ContentList({ refreshTrigger, isNostrConnected = false }: Conten
         }
         
         // Create and sign the event locally
+        let noteContent = contentItem.caption || 'Shared from ⚡gramstr'
+        
+        // Add carousel URLs if this is a carousel post
+        if (contentItem.isCarousel && (contentItem.supabaseCarouselUrls || contentItem.carouselFiles)) {
+          const urls = contentItem.supabaseCarouselUrls || contentItem.carouselFiles || []
+          if (urls.length > 0) {
+            // Filter to only include actual URLs (not local filenames)
+            const publicUrls = urls.filter(url => url.startsWith('http://') || url.startsWith('https://'))
+            if (publicUrls.length > 0) {
+              noteContent = `${noteContent}\n\n${publicUrls.join('\n')}`
+            }
+          }
+        } else if (contentItem.supabaseFileUrl) {
+          // For single images/videos, add the URL
+          noteContent = `${noteContent}\n\n${contentItem.supabaseFileUrl}`
+        }
+        
+        // Add original Instagram URL
+        noteContent = `${noteContent}\n\nOriginal: ${contentItem.originalUrl}`
+        
         const event = {
           kind: 1,
           created_at: Math.floor(Date.now() / 1000),
           tags: [],
-          content: `${contentItem.caption || 'Shared from ⚡gramstr'}\n\nOriginal: ${contentItem.originalUrl}`,
+          content: noteContent,
         }
         
         const signedEvent = await electronNostr.signEvent(event)
@@ -246,9 +269,9 @@ export function ContentList({ refreshTrigger, isNostrConnected = false }: Conten
           >
             {/* Media Preview */}
             <div className="relative">
-              {item.isCarousel && item.carouselFiles ? (
+              {item.isCarousel && (item.supabaseCarouselUrls || item.carouselFiles) ? (
                 <CarouselPreview
-                  carouselFiles={item.carouselFiles}
+                  carouselFiles={item.supabaseCarouselUrls || item.carouselFiles || []}
                   userId={item.userId}
                   caption={item.caption || ""}
                 />

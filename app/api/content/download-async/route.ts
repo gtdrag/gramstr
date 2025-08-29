@@ -3,6 +3,7 @@ import { getUserId } from "@/lib/visitor-id"
 import { db } from "@/db"
 import { downloadedContent } from "@/db/schema/content"
 import { eq } from "drizzle-orm"
+import { uploadToSupabase } from "@/lib/supabase-storage"
 
 export async function POST(request: NextRequest) {
   try {
@@ -51,13 +52,70 @@ export async function POST(request: NextRequest) {
     }).then(async (response) => {
       if (response.ok) {
         const result = await response.json()
-        // Update the record with the actual data
+        
+        // Upload files to Supabase Storage
+        let supabaseFileUrl = null
+        let supabaseThumbnailUrl = null
+        let supabaseCarouselUrls = null
+        
+        // Upload main file
+        if (result.metadata.file_path) {
+          try {
+            const fileResponse = await fetch(`${backendUrl}/media/${userId}/${encodeURIComponent(result.metadata.file_path)}`)
+            if (fileResponse.ok) {
+              const fileBlob = await fileResponse.blob()
+              const mimeType = fileResponse.headers.get('content-type') || undefined
+              supabaseFileUrl = await uploadToSupabase(fileBlob, result.metadata.file_path, userId, mimeType)
+            }
+          } catch (error) {
+            console.error(`Error uploading main file:`, error)
+          }
+        }
+        
+        // Upload thumbnail
+        if (result.metadata.thumbnail_path) {
+          try {
+            const thumbResponse = await fetch(`${backendUrl}/media/${userId}/${encodeURIComponent(result.metadata.thumbnail_path)}`)
+            if (thumbResponse.ok) {
+              const thumbBlob = await thumbResponse.blob()
+              const mimeType = thumbResponse.headers.get('content-type') || undefined
+              supabaseThumbnailUrl = await uploadToSupabase(thumbBlob, result.metadata.thumbnail_path, userId, mimeType)
+            }
+          } catch (error) {
+            console.error(`Error uploading thumbnail:`, error)
+          }
+        }
+        
+        // Upload carousel files
+        if (result.metadata.carousel_files && result.metadata.carousel_files.length > 0) {
+          supabaseCarouselUrls = []
+          for (const carouselFile of result.metadata.carousel_files) {
+            try {
+              const carouselResponse = await fetch(`${backendUrl}/media/${userId}/${encodeURIComponent(carouselFile)}`)
+              if (carouselResponse.ok) {
+                const carouselBlob = await carouselResponse.blob()
+                const mimeType = carouselResponse.headers.get('content-type') || undefined
+                const carouselUrl = await uploadToSupabase(carouselBlob, carouselFile, userId, mimeType)
+                if (carouselUrl) {
+                  supabaseCarouselUrls.push(carouselUrl)
+                }
+              }
+            } catch (error) {
+              console.error(`Error uploading carousel file ${carouselFile}:`, error)
+            }
+          }
+        }
+        
+        // Update the record with the actual data and Supabase URLs
         await db.update(downloadedContent)
           .set({
             status: "completed",
             caption: result.metadata.caption,
             filePath: result.metadata.file_path,
             thumbnailPath: result.metadata.thumbnail_path,
+            supabaseFileUrl: supabaseFileUrl,
+            supabaseThumbnailUrl: supabaseThumbnailUrl,
+            supabaseCarouselUrls: supabaseCarouselUrls,
             likes: result.metadata.likes,
             views: result.metadata.views,
             isVideo: result.metadata.is_video || false,
