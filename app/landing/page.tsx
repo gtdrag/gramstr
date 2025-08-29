@@ -21,13 +21,13 @@ export default function LandingPage() {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-            <a href="https://github.com/gtdrag/instascrape/releases/latest/download/Gramstr-2.0.0-arm64.dmg">
+            <a href="https://github.com/gtdrag/gramstr/releases/latest">
               <Button size="lg" className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold px-8 py-6 text-lg">
                 <Download className="mr-2 h-5 w-5" />
                 Download for Mac
               </Button>
             </a>
-            <a href="https://github.com/gtdrag/instascrape/releases/latest/download/Gramstr-2.0.0.exe">
+            <a href="https://github.com/gtdrag/gramstr/releases/latest">
               <Button size="lg" variant="outline" className="border-purple-500 text-purple-400 hover:bg-purple-500/10 px-8 py-6 text-lg">
                 <Download className="mr-2 h-5 w-5" />
                 Download for Windows
@@ -37,7 +37,7 @@ export default function LandingPage() {
           
           <p className="text-sm text-gray-500">
             Coming soon to Linux • View on{" "}
-            <a href="https://github.com/gtdrag/instascrape" className="text-purple-400 hover:text-purple-300">
+            <a href="https://github.com/gtdrag/gramstr" className="text-purple-400 hover:text-purple-300">
               GitHub
             </a>
           </p>
@@ -146,13 +146,13 @@ export default function LandingPage() {
             Ready to own your content?
           </h2>
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-            <a href="https://github.com/gtdrag/instascrape/releases/latest">
+            <a href="https://github.com/gtdrag/gramstr/releases/latest">
               <Button size="lg" className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold px-8 py-6 text-lg">
                 <Download className="mr-2 h-5 w-5" />
                 Download Now
               </Button>
             </a>
-            <a href="https://github.com/gtdrag/instascrape">
+            <a href="https://github.com/gtdrag/gramstr">
               <Button size="lg" variant="outline" className="border-purple-500 text-purple-400 hover:bg-purple-500/10 px-8 py-6 text-lg">
                 <Github className="mr-2 h-5 w-5" />
                 View on GitHub

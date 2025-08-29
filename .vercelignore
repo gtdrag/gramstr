@@ -1,0 +1,16 @@
+node_modules/
+.next/
+out/
+dist/
+downloads/
+backend/downloads/
+backend/venv/
+backend/__pycache__/
+*.mp4
+*.jpg
+*.jpeg
+*.png
+!build-resources/**
+!public/**
+.git/
+.DS_Store
