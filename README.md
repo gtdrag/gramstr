@@ -19,8 +19,6 @@ A full-stack application for downloading Instagram content and managing cross-pl
 - [Instaloader](https://instaloader.github.io/) for Instagram content downloading
 
 ### Auth & Infrastructure
-- [Clerk](https://clerk.com/) for authentication
-- [Stripe](https://stripe.com/) for payments
 - Next.js Server Actions for data mutations
 
 ## Features
@@ -38,8 +36,6 @@ A full-stack application for downloading Instagram content and managing cross-pl
 ### Required Accounts
 - [GitHub](https://github.com/) account
 - [Supabase](https://supabase.com/) account  
-- [Clerk](https://clerk.com/) account
-- [Stripe](https://stripe.com/) account (optional for payments)
 - [Vercel](https://vercel.com/) account (for deployment)
 
 ### Required Software
