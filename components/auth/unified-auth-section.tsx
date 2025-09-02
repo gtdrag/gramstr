@@ -3,7 +3,6 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { InstagramAuthSimple } from "@/components/auth/instagram-auth-simple"
-import { AlbyConnectModal } from "@/components/nostr/alby-connect-modal"
 import { ElectronKeyManager } from "@/components/nostr/electron-key-manager"
 import { useNostr } from "@/context/nostr-context"
 import { useElectron } from "@/hooks/use-electron"
@@ -25,7 +24,6 @@ export function UnifiedAuthSection({
 }: UnifiedAuthSectionProps) {
   const { isConnected, npub } = useNostr()
   const { isElectron, openInBrowser } = useElectron()
-  const [showAlbyModal, setShowAlbyModal] = useState(false)
   const [showInstagramForm, setShowInstagramForm] = useState(false)
   
   const hasInstagramAuth = instagramAuthStatus?.authenticated && instagramAuthStatus?.sessionStatus !== 'expired'
@@ -57,23 +55,9 @@ export function UnifiedAuthSection({
                 <div className="text-sm text-gray-400">
                   Connected as {npub?.slice(0, 12)}...{npub?.slice(-4)}
                 </div>
-              ) : isElectron ? (
-                // Show key import UI for Electron
-                <ElectronKeyManager />
               ) : (
-                // Show Alby connection for browser
-                <>
-                  <p className="text-sm text-gray-400">
-                    Connect with Alby to save your gallery and post to NOSTR
-                  </p>
-                  <Button
-                    onClick={() => setShowAlbyModal(true)}
-                    className="w-full bg-purple-600 hover:bg-purple-700 text-white"
-                  >
-                    <Zap className="w-4 h-4 mr-2" />
-                    Connect Alby
-                  </Button>
-                </>
+                // Show key import UI 
+                <ElectronKeyManager />
               )}
             </div>
 
@@ -123,16 +107,6 @@ export function UnifiedAuthSection({
 
       </div>
 
-      {/* Only show modal in browser, not in Electron */}
-      {!isElectron && (
-        <AlbyConnectModal 
-          open={showAlbyModal} 
-          onOpenChange={setShowAlbyModal}
-          onSuccess={() => {
-            setShowAlbyModal(false)
-          }}
-        />
-      )}
     </>
   )
 }

@@ -10,6 +10,7 @@ import { MediaPreview } from "./media-preview"
 import { CarouselPreview } from "./carousel-preview"
 import { api } from "@/lib/api-client"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -236,7 +237,15 @@ export function ContentList({ refreshTrigger, isNostrConnected = false }: Conten
     return (
       <div className="text-center py-8">
         {hasNostrAccess ? (
-          <p className="text-gray-400">No content downloaded yet. Add an Instagram URL above to get started.</p>
+          <div className="space-y-2">
+            <p className="text-gray-400">Your gallery is empty.</p>
+            <p className="text-sm text-gray-500">
+              <Link href="/download" className="text-purple-400 hover:text-purple-300 underline">
+                Go to Download page
+              </Link>
+              {' '}to add Instagram content.
+            </p>
+          </div>
         ) : isElectron ? (
           <div className="space-y-4">
             <div className="space-y-2">
@@ -252,7 +261,7 @@ export function ContentList({ refreshTrigger, isNostrConnected = false }: Conten
             </Button>
           </div>
         ) : (
-          <p className="text-gray-400">Connect with NOSTR via Alby to view your gallery.</p>
+          <p className="text-gray-400">Go back to connect and view your gallery.</p>
         )}
       </div>
     )
@@ -277,8 +286,8 @@ export function ContentList({ refreshTrigger, isNostrConnected = false }: Conten
                 />
               ) : (
                 <MediaPreview
-                  filePath={item.filePath}
-                  thumbnailPath={item.thumbnailPath}
+                  filePath={item.supabaseFileUrl || item.filePath}
+                  thumbnailPath={item.supabaseThumbnailUrl || item.thumbnailPath}
                   isVideo={item.isVideo}
                   userId={item.userId}
                   caption={item.caption || ""}

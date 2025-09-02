@@ -1,6 +1,8 @@
-const { app, BrowserWindow, Menu, shell } = require('electron');
+const { app, BrowserWindow, Menu, shell, ipcMain } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
+const fs = require('fs');
+const https = require('https');
 
 // Stability settings for macOS
 app.commandLine.appendSwitch('disable-gpu-sandbox');
@@ -10,17 +12,16 @@ const isDev = process.env.ELECTRON_IS_DEV === '1' || (!app.isPackaged && process
 
 // Helper to get correct path for packaged app
 function getAppPath() {
-  // In production, everything is unpacked due to asarUnpack: "**/*"
+  // In production, Next.js files are downloaded to userData
   if (app.isPackaged) {
-    // The app files are in Resources/app.asar.unpacked
-    const resourcesPath = process.resourcesPath;
-    return path.join(resourcesPath, 'app.asar.unpacked');
+    return app.getPath('userData');
   }
   // Development mode
   return path.join(__dirname, '..');
 }
 
 let mainWindow = null;
+let installerWindow = null;
 let pythonServer = null;
 let nextServer = null;
 
@@ -30,19 +31,27 @@ function startPythonBackend() {
     // Update status to running
     global.updateStatus(1, 'running', 'Launching...');
     
-    // In production, backend is in extraResources, not in asar
+    // Check for backend in user data directory first (installed via installer)
+    const userDataPath = app.getPath('userData');
+    const installedBackendPath = path.join(userDataPath, 'backend');
+    
+    // In production, backend should be in user data directory
     const backendPath = isDev 
       ? path.join(__dirname, '..', 'backend')
-      : path.join(process.resourcesPath, 'backend');
+      : fs.existsSync(installedBackendPath) 
+        ? installedBackendPath 
+        : path.join(process.resourcesPath, 'backend');
     
     const scriptPath = path.join(backendPath, 'main.py');
     
     // Check if venv exists and use it, otherwise fall back to system python3
-    const projectRoot = isDev ? path.join(__dirname, '..') : process.resourcesPath;
+    const installedVenvPath = path.join(userDataPath, 'venv');
+    const projectRoot = isDev ? path.join(__dirname, '..') : userDataPath;
     const venvPython = isDev 
       ? path.join(projectRoot, 'venv', 'bin', 'python')
-      : path.join(process.resourcesPath, 'venv', 'bin', 'python');
-    const fs = require('fs');
+      : fs.existsSync(installedVenvPath)
+        ? path.join(installedVenvPath, 'bin', 'python')
+        : path.join(process.resourcesPath, 'venv', 'bin', 'python');
     
     // In production, we MUST have the venv bundled
     let pythonCmd;
@@ -626,18 +635,139 @@ if (!gotTheLock) {
   });
 }
 
-// App events
-app.whenReady().then(() => {
-  console.log('=== ELECTRON APP READY ===');
-  console.log('Platform:', process.platform);
-  console.log('App path:', app.getPath('exe'));
-  console.log('Resources path:', process.resourcesPath);
-  console.log('Is packaged:', app.isPackaged);
+// IPC Handlers for Installer
+ipcMain.handle('check-installation', async () => {
+  console.log('Checking installation...');
   
-  createMenu();
+  // Check if Python backend exists
+  const userDataPath = app.getPath('userData');
+  const pythonBackendPath = path.join(userDataPath, 'backend');
+  const venvPath = path.join(userDataPath, 'venv');
   
-  // Create window immediately but don't load URL yet
-  console.log('=== CREATING WINDOW ===');
+  const backendExists = fs.existsSync(pythonBackendPath);
+  const venvExists = fs.existsSync(venvPath);
+  
+  console.log('Backend exists:', backendExists);
+  console.log('Venv exists:', venvExists);
+  
+  return backendExists && venvExists;
+});
+
+ipcMain.handle('install-components', async (event) => {
+  console.log('Starting component installation...');
+  
+  try {
+    const userDataPath = app.getPath('userData');
+    const pythonBackendPath = path.join(userDataPath, 'backend');
+    const venvPath = path.join(userDataPath, 'venv');
+    
+    // Create directories if they don't exist
+    if (!fs.existsSync(pythonBackendPath)) {
+      fs.mkdirSync(pythonBackendPath, { recursive: true });
+    }
+    
+    // Send progress updates
+    event.sender.send('install-progress', {
+      progress: 30,
+      message: 'Downloading Python backend...',
+      component: 'python-backend'
+    });
+    
+    // Download and extract Python backend
+    const https = require('https');
+    const { exec } = require('child_process');
+    const { promisify } = require('util');
+    const execAsync = promisify(exec);
+    
+    const components = [
+      { 
+        name: 'node-modules', 
+        file: 'node-modules-1.1.0.tar.gz',
+        targetDir: userDataPath,
+        progress: 25,
+        message: 'Downloading dependencies (91MB)...'
+      },
+      { 
+        name: 'core-files', 
+        file: 'core-files-1.1.0.tar.gz',
+        targetDir: userDataPath,
+        progress: 50,
+        message: 'Downloading application files (76MB)...'
+      },
+      { 
+        name: 'python-backend', 
+        file: 'python-backend-1.1.0.tar.gz',
+        targetDir: userDataPath,
+        progress: 75,
+        message: 'Downloading Python backend (12MB)...'
+      }
+    ];
+    
+    for (const component of components) {
+      event.sender.send('install-progress', {
+        progress: component.progress,
+        message: component.message,
+        component: component.name
+      });
+      
+      const url = `https://github.com/gtdrag/gramstr/releases/download/v1.1.0/${component.file}`;
+      const downloadPath = path.join(userDataPath, component.file);
+      
+      // Download the file
+      await new Promise((resolve, reject) => {
+        const file = fs.createWriteStream(downloadPath);
+        
+        https.get(url, (response) => {
+          if (response.statusCode === 302 || response.statusCode === 301) {
+            // Handle redirect
+            https.get(response.headers.location, (redirectResponse) => {
+              redirectResponse.pipe(file);
+              file.on('finish', () => {
+                file.close(resolve);
+              });
+            }).on('error', reject);
+          } else if (response.statusCode === 200) {
+            response.pipe(file);
+            file.on('finish', () => {
+              file.close(resolve);
+            });
+          } else {
+            reject(new Error(`Failed to download ${component.file}: ${response.statusCode}`));
+          }
+        }).on('error', reject);
+      });
+      
+      // Extract the tar.gz file using command line tar
+      await execAsync(`tar -xzf "${downloadPath}" -C "${component.targetDir}"`);
+      
+      // Clean up the downloaded archive
+      fs.unlinkSync(downloadPath);
+    }
+    
+    
+    event.sender.send('install-progress', {
+      progress: 100,
+      message: 'Installation complete!',
+      component: 'python-backend'
+    });
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Installation error:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('launch-app', async () => {
+  console.log('Launching main app from installer...');
+  
+  // Close installer window and proceed with normal startup
+  if (installerWindow) {
+    installerWindow.close();
+    installerWindow = null;
+  }
+  
+  // Start the main app
   createWindow();
   
   // Start Python backend
@@ -649,6 +779,68 @@ app.whenReady().then(() => {
   startNextServer((port) => {
     console.log(`Next.js server ready on port ${port}, loading app...`);
   });
+  
+  return true;
+});
+
+// App events
+app.whenReady().then(async () => {
+  console.log('=== ELECTRON APP READY ===');
+  console.log('Platform:', process.platform);
+  console.log('App path:', app.getPath('exe'));
+  console.log('Resources path:', process.resourcesPath);
+  console.log('Is packaged:', app.isPackaged);
+  
+  createMenu();
+  
+  // Check if components are installed
+  const userDataPath = app.getPath('userData');
+  
+  // We need .next and node_modules to run the app
+  // These are downloaded, not bundled
+  const nextjsInstalled = fs.existsSync(path.join(userDataPath, '.next'));
+  const nodeModulesInstalled = fs.existsSync(path.join(userDataPath, 'node_modules'));
+  
+  const componentsExist = nextjsInstalled && nodeModulesInstalled;
+  
+  console.log('Next.js installed:', nextjsInstalled);
+  console.log('Node modules installed:', nodeModulesInstalled);
+  console.log('Components available:', componentsExist);
+  
+  if (!componentsExist && app.isPackaged) {
+    // Show installer window
+    console.log('Showing installer window...');
+    installerWindow = new BrowserWindow({
+      width: 600,
+      height: 500,
+      webPreferences: {
+        nodeIntegration: true,
+        contextIsolation: false
+      },
+      titleBarStyle: 'hiddenInset',
+      resizable: false
+    });
+    
+    installerWindow.loadFile(path.join(__dirname, 'installer.html'));
+    
+    installerWindow.on('closed', () => {
+      installerWindow = null;
+    });
+  } else {
+    // Start normally
+    console.log('=== CREATING WINDOW ===');
+    createWindow();
+    
+    // Start Python backend
+    console.log('Starting Python backend...');
+    startPythonBackend();
+    
+    // Start Next.js and load URL when ready
+    console.log('Starting Next.js server...');
+    startNextServer((port) => {
+      console.log(`Next.js server ready on port ${port}, loading app...`);
+    });
+  }
 });
 
 app.on('window-all-closed', () => {

@@ -12,7 +12,7 @@ export function AppHeader() {
   const { isConnected, npub, isElectron, disconnect } = useNostr()
   
   const isGalleryPage = pathname === '/gallery'
-  const isDownloadPage = pathname === '/'
+  const isDownloadPage = pathname === '/download' || pathname === '/'
   const isDonatePage = pathname === '/donate'
 
   return (
@@ -56,7 +56,7 @@ export function AppHeader() {
           <div className="flex items-center gap-2">
             {!isDownloadPage && (
               <Button
-                onClick={() => router.push('/')}
+                onClick={() => router.push('/download')}
                 variant="ghost"
                 size="sm"
                 className="text-gray-300 hover:text-white hover:bg-white/10"

@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import { BulkDownloadForm } from "@/components/content/bulk-download-form"
 import { UnifiedAuthSection } from "@/components/auth/unified-auth-section"
-import { AlbyConnectModal } from "@/components/nostr/alby-connect-modal"
 import { AppLayout } from "@/components/layout/app-layout"
 import { useNostr } from "@/context/nostr-context"
 import { useElectron } from "@/hooks/use-electron"
@@ -14,7 +13,6 @@ import { useRouter } from "next/navigation"
 
 export default function Page() {
   const [refreshTrigger, setRefreshTrigger] = useState(0)
-  const [showAlbyModal, setShowAlbyModal] = useState(false)
   const [authStatus, setAuthStatus] = useState<{authenticated: boolean, sessionStatus?: string, warningMessage?: string} | null>(null)
   const router = useRouter()
   const { isConnected } = useNostr()
@@ -25,16 +23,11 @@ export default function Page() {
   // Consider authorized if either web Nostr or Electron key exists
   const hasNostrAccess = isConnected || hasElectronKey
   
-  // Show Alby modal on first visit if not connected (only in browser, not Electron)
+  // Alby modal disabled - not using Alby
   useEffect(() => {
-    const hasSeenWelcome = localStorage.getItem('has_seen_welcome')
-    if (!hasSeenWelcome && !hasNostrAccess && !isElectron) {
-      setTimeout(() => {
-        setShowAlbyModal(true)
-        localStorage.setItem('has_seen_welcome', 'true')
-      }, 1000)
-    }
-  }, [hasNostrAccess, isElectron])
+    // Disabled auto-show of Alby modal
+    localStorage.setItem('has_seen_welcome', 'true')
+  }, [])
 
   const checkAuthStatus = () => {
     fetch("/api/auth/instagram")
@@ -53,12 +46,6 @@ export default function Page() {
 
   return (
     <AppLayout>
-      {/* Alby Modal */}
-      <AlbyConnectModal 
-        open={showAlbyModal} 
-        onOpenChange={setShowAlbyModal}
-        onSuccess={() => setShowAlbyModal(false)}
-      />
       
       <div className="flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-4xl space-y-12">

@@ -6,28 +6,29 @@ directories:
 
 files:
   - electron/**/*
-  - .next/**/*
-  - "!.next/cache/**/*"
-  - public/**/*
-  - backend/**/*
-  - "!backend/__pycache__/**/*"
+  - public/app-icon.png
   - package.json
-  - package-lock.json
-  - node_modules/**/*
+  - "!.next/**/*"
+  - "!node_modules/**/*"
+  - "!backend/**/*"
+  - "!venv/**/*"
+  - "!components/**/*"
+  - "!app/**/*"
+  - "!lib/**/*"
+  - "!db/**/*"
+  - "!dist/**/*"
+  - "!scripts/**/*"
+  - "!tests/**/*"
+  - "!*.md"
+  - "!*.yml"
+  - "!*.json"
+  - "+package.json"
 
 asarUnpack:
-  - "**/*"
+  - "electron/**/*"
+  - "public/app-icon.png"
 
-extraResources:
-  - from: backend
-    to: backend
-    filter:
-      - "**/*"
-      - "!__pycache__/**/*"
-  - from: venv
-    to: venv
-    filter:
-      - "**/*"
+extraResources: []
 
 mac:
   category: public.app-category.social-networking
@@ -36,6 +37,11 @@ mac:
   gatekeeperAssess: false
   entitlements: build-resources/entitlements.mac.plist
   entitlementsInherit: build-resources/entitlements.mac.plist
+  identity: "Developer ID Application: George Drag (75SL55EPD7)"
+  notarize:
+    teamId: "75SL55EPD7"
+    appleId: "${APPLE_ID}"
+    appleIdPassword: "${APPLE_APP_SPECIFIC_PASSWORD}"
   target:
     - target: dmg
       arch:

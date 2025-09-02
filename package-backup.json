@@ -111,17 +111,15 @@
       "output": "dist"
     },
     "files": [
-      "electron/**/*",
-      "public/app-icon.png",
+      "electron/main.js",
+      "electron/installer.html",
       "package.json",
+      "public/app-icon.png",
       "!node_modules/**/*",
-      "!.next/**/*",
-      "!backend/**/*",
-      "!venv/**/*"
+      "node_modules/electron/**/*"
     ],
-    "includeSubNodeModules": false,
     "extraResources": [],
-    "asarUnpack": ["electron/**/*", "public/app-icon.png"],
+    "asarUnpack": [],
     "mac": {
       "category": "public.app-category.social-networking",
       "icon": "public/app-icon.png",

@@ -44,6 +44,15 @@ next-env.d.ts
 # clerk configuration (can include secrets)
 /.clerk/
 /downloads/
+/test_gallery_dl/
 /split-repos.sh
 /app/api/v2/
 dist/
+dist-*/
+installer/
+minimal-installer/
+venv/
+backend/session_cookies.json
+backend/instagram_cookies.txt
+backend/session_status.json
+gramstr-next-debug.log

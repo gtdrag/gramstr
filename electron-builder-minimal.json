@@ -1,0 +1,35 @@
+{
+  "appId": "com.gramstr.app",
+  "productName": "Gramstr",
+  "directories": {
+    "output": "dist-minimal"
+  },
+  "files": [
+    "electron/main.js",
+    "electron/preload.js",
+    "electron/installer.html",
+    "electron/start-next-prod-debug.js",
+    "public/app-icon.png",
+    "package.json",
+    "!node_modules/**/*"
+  ],
+  "mac": {
+    "category": "public.app-category.social-networking",
+    "icon": "public/app-icon.png"
+  },
+  "dmg": {
+    "icon": "public/app-icon.png",
+    "contents": [
+      {
+        "x": 130,
+        "y": 220
+      },
+      {
+        "x": 410,
+        "y": 220,
+        "type": "link",
+        "path": "/Applications"
+      }
+    ]
+  }
+}
