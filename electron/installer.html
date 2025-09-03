@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gramstr Installer</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+      color: white;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      overflow-y: auto;
+      padding: 20px 0;
+    }
+
+    .installer-container {
+      text-align: center;
+      padding: 20px;
+      animation: fadeIn 0.5s ease-in;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .logo {
+      width: 70px;
+      height: 70px;
+      margin-bottom: 15px;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      letter-spacing: -0.5px;
+    }
+
+    .subtitle {
+      font-size: 16px;
+      opacity: 0.9;
+      margin-bottom: 25px;
+    }
+
+    .progress-container {
+      width: 300px;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+      overflow: hidden;
+      margin: 20px auto;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #8b5cf6 0%, #a855f7 100%);
+      border-radius: 3px;
+      transition: width 0.3s ease;
+      box-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
+    }
+
+    .status-text {
+      font-size: 13px;
+      opacity: 0.8;
+      margin-top: 15px;
+      min-height: 20px;
+    }
+
+    .component-list {
+      margin: 15px 0;
+      text-align: left;
+      display: inline-block;
+    }
+
+    .component-item {
+      display: flex;
+      align-items: center;
+      margin: 8px 0;
+      font-size: 13px;
+      opacity: 0.6;
+      transition: opacity 0.3s;
+    }
+
+    .component-item.active {
+      opacity: 1;
+    }
+
+    .component-item.completed {
+      opacity: 0.9;
+    }
+
+    .component-icon {
+      width: 18px;
+      height: 18px;
+      margin-right: 10px;
+      border: 2px solid white;
+      border-radius: 50%;
+      position: relative;
+    }
+
+    .component-icon.completed::after {
+      content: '✓';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 12px;
+    }
+
+    .button {
+      background: linear-gradient(90deg, #8b5cf6 0%, #a855f7 100%);
+      color: white;
+      border: none;
+      padding: 10px 25px;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      margin: 15px auto 0;
+      display: block;
+      width: fit-content;
+    }
+
+    .button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3);
+      background: linear-gradient(90deg, #a855f7 0%, #8b5cf6 100%);
+    }
+
+    .button:active {
+      transform: translateY(0);
+    }
+
+    .button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .error-message {
+      background: rgba(255, 59, 48, 0.2);
+      border: 1px solid rgba(255, 59, 48, 0.5);
+      padding: 10px 20px;
+      border-radius: 5px;
+      margin-top: 20px;
+      font-size: 14px;
+    }
+
+    .close-button {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 30px;
+      height: 30px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .close-button:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Background animation */
+    .bg-shapes {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      z-index: -1;
+    }
+
+    .shape {
+      position: absolute;
+      background: rgba(139, 92, 246, 0.1);
+      border-radius: 50%;
+      animation: float 20s infinite ease-in-out;
+    }
+
+    .shape:nth-child(1) {
+      width: 80px;
+      height: 80px;
+      left: 10%;
+      animation-delay: 0s;
+    }
+
+    .shape:nth-child(2) {
+      width: 120px;
+      height: 120px;
+      right: 20%;
+      animation-delay: 5s;
+    }
+
+    .shape:nth-child(3) {
+      width: 60px;
+      height: 60px;
+      left: 80%;
+      bottom: 20%;
+      animation-delay: 10s;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-100px) rotate(180deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-shapes">
+    <div class="shape"></div>
+    <div class="shape"></div>
+    <div class="shape"></div>
+  </div>
+
+  <div class="close-button" onclick="window.close()">✕</div>
+
+  <div class="installer-container">
+    <img class="logo" src="../public/app-icon.png" alt="Gramstr" style="width: 70px; height: 70px; border-radius: 16px;" />
+
+    <h1>Installing Gramstr</h1>
+    <p class="subtitle">Bridge your content to Nostr</p>
+
+    <div class="component-list" id="componentList">
+      <div class="component-item" data-component="node-modules">
+        <div class="component-icon"></div>
+        <span>Dependencies (91MB)</span>
+      </div>
+      <div class="component-item" data-component="core-files">
+        <div class="component-icon"></div>
+        <span>Application files (76MB)</span>
+      </div>
+      <div class="component-item" data-component="python-backend">
+        <div class="component-icon"></div>
+        <span>Python backend (1MB)</span>
+      </div>
+      <div class="component-item" data-component="python-venv">
+        <div class="component-icon"></div>
+        <span>Python environment (10MB)</span>
+      </div>
+    </div>
+
+    <div class="progress-container" id="progressContainer" style="display: none;">
+      <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+    </div>
+
+    <p class="status-text" id="statusText">Checking installation...</p>
+
+    <button class="button" id="actionButton" onclick="handleAction()">
+      Install Now
+    </button>
+
+    <div class="error-message" id="errorMessage" style="display: none;"></div>
+  </div>
+
+  <script>
+    console.log('Installer script starting...');
+    
+    let ipcRenderer;
+    try {
+      const electron = require('electron');
+      ipcRenderer = electron.ipcRenderer;
+      console.log('IPC Renderer loaded successfully');
+    } catch (error) {
+      console.error('Failed to load electron:', error);
+      alert('Failed to load electron: ' + error.message);
+    }
+    
+    let currentAction = 'check';
+    const statusText = document.getElementById('statusText');
+    const progressBar = document.getElementById('progressBar');
+    const progressContainer = document.getElementById('progressContainer');
+    const actionButton = document.getElementById('actionButton');
+    const errorMessage = document.getElementById('errorMessage');
+    const componentList = document.getElementById('componentList');
+
+    // Check installation on load
+    window.addEventListener('DOMContentLoaded', async () => {
+      const isInstalled = await ipcRenderer.invoke('check-installation');
+      
+      if (isInstalled) {
+        statusText.textContent = 'Gramstr is already installed!';
+        actionButton.textContent = 'Launch Gramstr';
+        currentAction = 'launch';
+        componentList.style.display = 'none';
+      } else {
+        statusText.textContent = 'Ready to install Gramstr (178MB total)';
+        actionButton.textContent = 'Install Now';
+        currentAction = 'install';
+      }
+    });
+
+    // Listen for progress updates
+    ipcRenderer.on('install-progress', (event, data) => {
+      progressBar.style.width = `${data.progress}%`;
+      statusText.textContent = data.message;
+      
+      // Update component list
+      if (data.component) {
+        const allItems = Array.from(document.querySelectorAll('.component-item'));
+        const currentItem = document.querySelector(`[data-component="${data.component}"]`);
+        
+        if (currentItem) {
+          const currentIndex = allItems.indexOf(currentItem);
+          
+          // Mark current item as active
+          currentItem.classList.add('active');
+          
+          // Only mark previous items as completed if we've moved to a new component
+          // (not just started the first one)
+          if (currentIndex > 0 && data.progress > 0) {
+            // Mark only the immediately previous item as completed when we start a new one
+            const prevItem = allItems[currentIndex - 1];
+            if (prevItem && !prevItem.classList.contains('completed')) {
+              prevItem.classList.add('completed');
+              prevItem.querySelector('.component-icon').classList.add('completed');
+            }
+          }
+        }
+      }
+      
+      if (data.progress === 100) {
+        document.querySelectorAll('.component-item').forEach(item => {
+          item.classList.add('completed');
+          item.querySelector('.component-icon').classList.add('completed');
+        });
+        
+        setTimeout(() => {
+          statusText.textContent = 'Installation complete! Launching Gramstr...';
+          actionButton.style.display = 'none'; // Hide button
+          // Auto-launch the app
+          setTimeout(() => {
+            ipcRenderer.invoke('launch-app');
+          }, 1500); // Give user a moment to see the complete message
+        }, 1000);
+      }
+    });
+
+    // Handle button action
+    async function handleAction() {
+      console.log('handleAction called, currentAction:', currentAction);
+      
+      if (!ipcRenderer) {
+        alert('IPC not available - cannot proceed with installation');
+        return;
+      }
+      
+      if (currentAction === 'install') {
+        console.log('Starting installation...');
+        actionButton.disabled = true;
+        actionButton.style.display = 'none';
+        progressContainer.style.display = 'block';
+        errorMessage.style.display = 'none';
+        
+        const result = await ipcRenderer.invoke('install-components');
+        
+        if (!result.success) {
+          errorMessage.textContent = `Installation failed: ${result.error}`;
+          errorMessage.style.display = 'block';
+          actionButton.disabled = false;
+          actionButton.style.display = 'block';
+          progressContainer.style.display = 'none';
+        }
+      } else if (currentAction === 'launch') {
+        statusText.textContent = 'Launching Gramstr...';
+        actionButton.disabled = true;
+        await ipcRenderer.invoke('launch-app');
+        
+        setTimeout(() => {
+          window.close();
+        }, 1000);
+      }
+    }
+  </script>
+</body>
+</html>

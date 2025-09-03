@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server"
+import { getBackendUrlSync } from "@/lib/get-backend-url"
 
 export async function GET() {
   try {
     // Always check with backend API - it's the single source of truth
-    // In Electron, always use localhost:8000 where Python backend runs
-    const backendUrl = 'http://localhost:8000'
+    // Get dynamic backend URL
+    const backendUrl = getBackendUrlSync()
     
     try {
       const response = await fetch(`${backendUrl}/auth/status`)

@@ -64,9 +64,16 @@ export function DownloadForm({ onDownloadComplete }: DownloadFormProps) {
     setIsLoading(true)
 
     try {
+      console.log('[DownloadForm] Starting download for URL:', url)
+      console.log('[DownloadForm] Making request to /api/content/download')
+      
       const response = await api.post("/api/content/download", { url })
+      
+      console.log('[DownloadForm] Response status:', response.status)
+      console.log('[DownloadForm] Response headers:', response.headers)
 
       const data = await response.json()
+      console.log('[DownloadForm] Response data:', data)
 
       if (!response.ok) {
         // Handle session expiration specifically

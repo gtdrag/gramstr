@@ -2,7 +2,7 @@
 
 import { useRouter, usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Grid3x3, Download, Zap } from "lucide-react"
+import { Grid3x3, Download, Zap, Heart } from "lucide-react"
 import { useNostr } from "@/context/nostr-context"
 import { motion } from "framer-motion"
 
@@ -12,7 +12,8 @@ export function AppHeader() {
   const { isConnected, npub, isElectron, disconnect } = useNostr()
   
   const isGalleryPage = pathname === '/gallery'
-  const isDownloadPage = pathname === '/'
+  const isDownloadPage = pathname === '/download' || pathname === '/'
+  const isDonatePage = pathname === '/donate'
 
   return (
     <motion.header
@@ -55,7 +56,7 @@ export function AppHeader() {
           <div className="flex items-center gap-2">
             {!isDownloadPage && (
               <Button
-                onClick={() => router.push('/')}
+                onClick={() => router.push('/download')}
                 variant="ghost"
                 size="sm"
                 className="text-gray-300 hover:text-white hover:bg-white/10"
@@ -74,6 +75,18 @@ export function AppHeader() {
               >
                 <Grid3x3 className="h-4 w-4 mr-1.5" />
                 Gallery
+              </Button>
+            )}
+            
+            {!isDonatePage && (
+              <Button
+                onClick={() => router.push('/donate')}
+                variant="ghost"
+                size="sm"
+                className="text-gray-300 hover:text-white hover:bg-white/10"
+              >
+                <Heart className="h-4 w-4 mr-1.5" />
+                Donate
               </Button>
             )}
             

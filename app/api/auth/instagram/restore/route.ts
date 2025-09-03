@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
 import { getInstagramCookies } from "@/actions/instagram-cookies"
+import { getBackendUrlSync } from "@/lib/get-backend-url"
 
 export async function POST() {
   try {
@@ -24,7 +25,7 @@ export async function POST() {
     }
     
     // Send cookies to backend
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+    const backendUrl = getBackendUrlSync()
     
     try {
       const response = await fetch(`${backendUrl}/upload-cookies`, {
