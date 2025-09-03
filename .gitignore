@@ -56,3 +56,4 @@ backend/session_cookies.json
 backend/instagram_cookies.txt
 backend/session_status.json
 gramstr-next-debug.log
+logs/
