@@ -31,24 +31,32 @@
 - **Value**: Optimize content for Nostr audience
 - **Time**: ~3 hours
 
+### 5. **Clean Uninstall** 🗑️
+- [ ] Remove all application data
+- [ ] Clear stored keys securely
+- [ ] Delete downloads folder
+- [ ] Remove cookies and session data
+- **Value**: Clean system removal, privacy protection
+- **Time**: ~2 hours
+
 ## 📈 Phase 2: Growth Features (v1.1)
 *3-5 days each*
 
-### 5. **Auto-Repost Mode** 🔄
+### 6. **Auto-Repost Mode** 🔄
 - [ ] Watch Instagram account for new posts
 - [ ] Auto-download and queue
 - [ ] Optional auto-post to Nostr
 - **Value**: Set and forget Instagram→Nostr bridge
 - **Time**: ~1 day
 
-### 6. **Scheduled Posting** ⏰
+### 7. **Scheduled Posting** ⏰
 - [ ] Queue posts for specific times
 - [ ] Timezone support
 - [ ] Recurring schedules
 - **Value**: Consistent posting, better engagement
 - **Time**: ~1 day
 
-### 7. **Analytics Dashboard** 📊
+### 8. **Analytics Dashboard** 📊
 - [ ] Post performance (from Nostr relays)
 - [ ] Best posting times
 - [ ] Engagement trends
@@ -58,21 +66,21 @@
 ## 🎯 Phase 3: Power Features (v2.0)
 *1-2 weeks each*
 
-### 8. **Multi-Account Support** 👥
+### 9. **Multi-Account Support** 👥
 - [ ] Multiple Instagram sources
 - [ ] Multiple Nostr identities
 - [ ] Account switching UI
 - **Value**: Agencies, power users
 - **Time**: ~1 week
 
-### 9. **Content Templates** 🎨
+### 10. **Content Templates** 🎨
 - [ ] Save caption templates
 - [ ] Hashtag sets
 - [ ] Auto-formatting rules
 - **Value**: Consistent branding
 - **Time**: ~3 days
 
-### 10. **Cross-Platform Expansion** 🌍
+### 11. **Cross-Platform Expansion** 🌍
 - [ ] TikTok support
 - [ ] X/Twitter support
 - [ ] YouTube Shorts

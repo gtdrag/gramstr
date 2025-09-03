@@ -14,14 +14,34 @@ import subprocess
 import shutil
 import datetime
 import time
+import logging
+from logging.handlers import RotatingFileHandler
 
 # ABSOLUTE PATH CONFIGURATION - FIXES ALL PATH ISSUES
 PROJECT_ROOT = Path(__file__).parent.parent.absolute()  # Goes up from backend/ to project root
 DOWNLOADS_DIR = PROJECT_ROOT / "downloads"  # Always use absolute path to downloads
 DOWNLOADS_DIR.mkdir(exist_ok=True)  # Ensure it exists
 
-print(f"🔧 Project root: {PROJECT_ROOT}")
-print(f"📁 Downloads directory: {DOWNLOADS_DIR}")
+# Set up logging to file
+LOG_DIR = PROJECT_ROOT / "logs"
+LOG_DIR.mkdir(exist_ok=True)
+LOG_FILE = LOG_DIR / "backend.log"
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        RotatingFileHandler(LOG_FILE, maxBytes=10*1024*1024, backupCount=5),
+        logging.StreamHandler()  # Also log to console
+    ]
+)
+
+logger = logging.getLogger(__name__)
+
+logger.info(f"🔧 Project root: {PROJECT_ROOT}")
+logger.info(f"📁 Downloads directory: {DOWNLOADS_DIR}")
+logger.info(f"📝 Log file: {LOG_FILE}")
 
 app = FastAPI(title="Dumpstr API", version="1.0.0")
 
@@ -183,7 +203,7 @@ async def root():
 async def download_content(request: DownloadRequest):
     """Download Instagram content using yt-dlp"""
     try:
-        print(f"Starting yt-dlp download for URL: {request.url}")
+        logger.info(f"Starting yt-dlp download for URL: {request.url}")
         
         # Validate Instagram URL
         if not is_valid_instagram_url(request.url):
@@ -226,54 +246,104 @@ async def download_content(request: DownloadRequest):
         # Try yt-dlp first (faster and reliable)
         carousel_caption = None  # Store caption in case we need it for gallery-dl fallback
         target_story_index = None
+        info = None
         
-        # Extract info first (this usually works even when download fails)
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            try:
-                info = ydl.extract_info(request.url, download=False)
-                print(f"Successfully extracted info for: {info.get('title', 'Unknown')}")
-                carousel_caption = info.get('description', '') or info.get('title', '')
-                print(f"Extracted caption: {carousel_caption[:100]}..." if len(carousel_caption) > 100 else f"Extracted caption: {carousel_caption}")
-                
-                # For stories with specific ID, find which entry matches
-                if is_story and story_id and info:
+        # First pass: Extract info to find the specific story if needed
+        if is_story and story_id:
+            logger.info(f"🔍 Looking for specific story ID: {story_id}")
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                try:
+                    info = ydl.extract_info(request.url, download=False)
+                    logger.info(f"Successfully extracted info for: {info.get('title', 'Unknown')}")
+                    logger.info(f"Info type: {info.get('_type')}")
+                    
+                    # For stories with specific ID, find which entry matches
                     if info.get('_type') == 'playlist' and 'entries' in info:
-                        print(f"Playlist with {len(info.get('entries', []))} stories")
+                        logger.info(f"Playlist with {len(info.get('entries', []))} stories")
+                        logger.info(f"Looking for story with ID: {story_id}")
                         for idx, entry in enumerate(info.get('entries', [])):
-                            # Check various IDs that might match
+                            # Check ALL possible ID fields
                             entry_id = str(entry.get('id', ''))
-                            display_id = entry.get('display_id', '')
+                            display_id = str(entry.get('display_id', ''))
                             url = entry.get('webpage_url', '')
+                            webpage_url_basename = str(entry.get('webpage_url_basename', ''))
                             
-                            print(f"Story {idx+1}: id={entry_id}, display_id={display_id}")
+                            logger.info(f"\nStory {idx+1} details:")
+                            logger.info(f"  - id: {entry_id}")
+                            logger.info(f"  - display_id: {display_id}")
+                            logger.info(f"  - webpage_url: {url}")
+                            logger.info(f"  - webpage_url_basename: {webpage_url_basename}")
+                            logger.info(f"  - title: {entry.get('title', 'N/A')}")
                             
                             # Check if this is our requested story
-                            if story_id in [entry_id, display_id] or story_id in url:
+                            # The problem: Instagram gives all stories in a session the same webpage_url_basename!
+                            # We need to match on the actual story media ID instead
+                            story_matched = False
+                            
+                            # First, check the obvious IDs
+                            if story_id == entry_id or story_id == display_id:
+                                story_matched = True
+                                logger.info(f"  ✅ Matched on entry_id or display_id!")
+                            
+                            # Check if it's the exact URL we requested
+                            elif url == request.url:
+                                story_matched = True
+                                logger.info(f"  ✅ Matched on exact URL!")
+                                
+                            # Last resort - check webpage_url_basename (but this might match all stories!)
+                            elif story_id == webpage_url_basename:
+                                # This is problematic - might match multiple stories
+                                logger.warning(f"  ⚠️ Matched on webpage_url_basename - this might be wrong!")
+                                # Don't match on this alone - continue looking
+                                continue
+                            
+                            if story_matched:
                                 target_story_index = idx
-                                print(f"✓ Found target story at index {idx+1}")
-                                # Update options to only download this specific story
+                                logger.info(f"✅ MATCH! Found target story at index {idx+1}")
+                                logger.info(f"  Matched URL: {url}")
+                                
+                                # Try multiple approaches to get only this story
+                                # Approach 1: Use playlist_items (1-indexed)
                                 ydl_opts['playlist_items'] = str(idx + 1)
+                                
+                                # Approach 2: Also try playliststart/end
                                 ydl_opts['playliststart'] = idx + 1
                                 ydl_opts['playlistend'] = idx + 1
-                                break
                                 
-            except Exception as e:
-                print(f"Failed to extract info: {e}")
-                info = None
-                
-                # Don't try to read old info.json files - they contain wrong metadata!
-                # The caption should come from the current download only
-                print("Info extraction failed, will use URL-based metadata only")
+                                # Approach 3: If we have the direct URL, we could try downloading that instead
+                                if url and 'instagram.com' in url:
+                                    logger.info(f"  Found direct story URL: {url}")
+                                    # We'll use this URL for download instead of the playlist URL
+                                    request.url = url
+                                    logger.info(f"  Changed download URL to specific story: {url}")
+                                
+                                logger.info(f"Updated options: playlist_items='{idx + 1}', start={idx + 1}, end={idx + 1}")
+                                break
+                        
+                        if target_story_index is None:
+                            logger.warning(f"❌ WARNING: Could not find story with ID {story_id} in any of the {len(info.get('entries', []))} stories")
+                            logger.warning("Will download all stories instead...")
+                    else:
+                        logger.info(f"Not a playlist or no entries found. Info keys: {list(info.keys())}")
+                                    
+                except Exception as e:
+                    logger.error(f"Failed to extract info for story selection: {e}")
         
-        # Now try to download
+        # Now download with the updated options
+        logger.info(f"\n📥 Starting download with options:")
+        if 'playlist_items' in ydl_opts:
+            logger.info(f"  - playlist_items: {ydl_opts['playlist_items']}")
+        else:
+            logger.info(f"  - playlist_items: NOT SET (will download all)")
+        
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             try:
                 # Download using the URL (this also extracts info)
                 download_info = ydl.extract_info(request.url, download=True)
                 print("Download completed successfully")
                 
-                # Use download_info if we didn't get info earlier
-                if not info and download_info:
+                # Use download_info if we didn't get info earlier or to update caption
+                if download_info:
                     info = download_info
                     carousel_caption = info.get('description', '') or info.get('title', '')
                     print(f"Got caption from download: {carousel_caption[:100]}..." if len(carousel_caption) > 100 else f"Got caption from download: {carousel_caption}")
