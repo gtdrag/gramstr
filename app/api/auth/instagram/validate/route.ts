@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server"
+import { getBackendUrlSync } from "@/lib/get-backend-url"
 
 export async function POST() {
   try {
     // Make a test request to Instagram using the Python backend
     // This will attempt a lightweight operation to validate the session
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+    const backendUrl = getBackendUrlSync()
     const response = await fetch(`${backendUrl}/validate-session`, {
       method: "POST",
       headers: {

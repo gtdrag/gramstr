@@ -259,7 +259,11 @@
       </div>
       <div class="component-item" data-component="python-backend">
         <div class="component-icon"></div>
-        <span>Python backend (12MB)</span>
+        <span>Python backend (1MB)</span>
+      </div>
+      <div class="component-item" data-component="python-venv">
+        <div class="component-icon"></div>
+        <span>Python environment (10MB)</span>
       </div>
     </div>
 
@@ -307,7 +311,7 @@
         currentAction = 'launch';
         componentList.style.display = 'none';
       } else {
-        statusText.textContent = 'Ready to install Gramstr (179MB total)';
+        statusText.textContent = 'Ready to install Gramstr (178MB total)';
         actionButton.textContent = 'Install Now';
         currentAction = 'install';
       }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getUserId } from "@/lib/visitor-id"
+import { getBackendUrlSync } from "@/lib/get-backend-url"
 
 export async function POST(request: NextRequest) {
   try {
@@ -69,8 +70,8 @@ export async function POST(request: NextRequest) {
     console.log(`Received ${cookies.length} cookies for user ${userId}`)
     
     // Always send cookies to the backend API - it's the single source of truth
-    // In Electron, always use localhost:8000 where Python backend runs
-    const backendUrl = 'http://localhost:8000'
+    // Get dynamic backend URL
+    const backendUrl = getBackendUrlSync()
     
     try {
       // Add timeout to prevent hanging (5 seconds)

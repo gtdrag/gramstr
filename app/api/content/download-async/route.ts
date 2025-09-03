@@ -4,6 +4,7 @@ import { db } from "@/db"
 import { downloadedContent } from "@/db/schema/content"
 import { eq } from "drizzle-orm"
 import { uploadToSupabase } from "@/lib/supabase-storage"
+import { getBackendUrlSync } from "@/lib/get-backend-url"
 
 export async function POST(request: NextRequest) {
   try {
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest) {
     }).returning()
 
     // Start the download in the background (fire and forget)
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+    const backendUrl = getBackendUrlSync()
     fetch(`${backendUrl}/download`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

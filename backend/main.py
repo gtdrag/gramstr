@@ -396,14 +396,19 @@ async def download_content(request: DownloadRequest):
                     print("🎠 Trying gallery-dl to get all carousel content...")
                     
                     try:
-                        # Try gallery-dl for this URL - use venv path if available
+                        # Try gallery-dl for this URL - use Python module approach
                         backend_dir = Path(__file__).parent
-                        venv_gallery_dl = backend_dir.parent / "venv" / "bin" / "gallery-dl"
-                        gallery_cmd = str(venv_gallery_dl) if venv_gallery_dl.exists() else "gallery-dl"
+                        venv_python = backend_dir.parent / "venv" / "bin" / "python"
                         
-                        gallery_result = subprocess.run([
-                            gallery_cmd, "-d", str(download_dir), request.url, "--cookies", cookies_path
-                        ], capture_output=True, text=True, timeout=90)
+                        # Use the venv's Python to run gallery-dl as a module
+                        if venv_python.exists():
+                            gallery_cmd = [str(venv_python), "-m", "gallery_dl"]
+                        else:
+                            gallery_cmd = ["python3", "-m", "gallery_dl"]
+                        
+                        gallery_result = subprocess.run(
+                            gallery_cmd + ["-d", str(download_dir), request.url, "--cookies", cookies_path],
+                            capture_output=True, text=True, timeout=90)
                         
                         if gallery_result.returncode == 0:
                             # Find gallery-dl files
@@ -565,14 +570,19 @@ async def download_content(request: DownloadRequest):
                     
                     if cookies_path:
                         try:
-                            # Try gallery-dl as fallback for carousels - use venv path if available  
+                            # Try gallery-dl as fallback for carousels - use Python module approach
                             backend_dir = Path(__file__).parent
-                            venv_gallery_dl = backend_dir.parent / "venv" / "bin" / "gallery-dl"
-                            gallery_cmd = str(venv_gallery_dl) if venv_gallery_dl.exists() else "gallery-dl"
+                            venv_python = backend_dir.parent / "venv" / "bin" / "python"
                             
-                            gallery_result = subprocess.run([
-                                gallery_cmd, "-d", str(download_dir), request.url, "--cookies", cookies_path
-                            ], capture_output=True, text=True, timeout=90)
+                            # Use the venv's Python to run gallery-dl as a module
+                            if venv_python.exists():
+                                gallery_cmd = [str(venv_python), "-m", "gallery_dl"]
+                            else:
+                                gallery_cmd = ["python3", "-m", "gallery_dl"]
+                            
+                            gallery_result = subprocess.run(
+                                gallery_cmd + ["-d", str(download_dir), request.url, "--cookies", cookies_path],
+                                capture_output=True, text=True, timeout=90)
                             
                             if gallery_result.returncode == 0:
                                 print("✅ Gallery-dl succeeded!")
@@ -714,12 +724,17 @@ async def download_carousel_content(request: DownloadRequest):
         if not cookies_path:
             raise HTTPException(status_code=400, detail="Gallery-dl requires Instagram authentication. Please upload your cookies first.")
         
-        # Use gallery-dl to download - use venv path if available
+        # Use gallery-dl to download - use Python module approach
         backend_dir = Path(__file__).parent
-        venv_gallery_dl = backend_dir.parent / "venv" / "bin" / "gallery-dl"
-        gallery_cmd = str(venv_gallery_dl) if venv_gallery_dl.exists() else "gallery-dl"
+        venv_python = backend_dir.parent / "venv" / "bin" / "python"
         
-        cmd = [gallery_cmd, "-d", str(download_dir), request.url, "--cookies", cookies_path]
+        # Use the venv's Python to run gallery-dl as a module
+        if venv_python.exists():
+            gallery_cmd = [str(venv_python), "-m", "gallery_dl"]
+        else:
+            gallery_cmd = ["python3", "-m", "gallery_dl"]
+        
+        cmd = gallery_cmd + ["-d", str(download_dir), request.url, "--cookies", cookies_path]
         print(f"Running gallery-dl: {' '.join(cmd)}")
         
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)

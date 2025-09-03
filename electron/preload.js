@@ -1,4 +1,4 @@
-const { contextBridge, shell } = require('electron');
+const { contextBridge, shell, ipcRenderer } = require('electron');
 
 // Expose minimal Electron API for privacy-focused functionality
 contextBridge.exposeInMainWorld('electron', {
@@ -17,5 +17,8 @@ contextBridge.exposeInMainWorld('electron', {
     electron: process.versions.electron,
     chrome: process.versions.chrome,
     node: process.versions.node
-  }
+  },
+  
+  // Get port configuration
+  getPorts: () => ipcRenderer.invoke('get-ports')
 });

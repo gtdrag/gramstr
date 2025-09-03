@@ -3,8 +3,37 @@ import { db } from "@/db"
 import { downloadedContent } from "@/db/schema"
 import { uploadToSupabase } from "@/lib/supabase-storage"
 import { getUserId } from "@/lib/visitor-id"
+import { getBackendUrlSync } from "@/lib/get-backend-url"
+import * as fs from 'fs'
+import * as path from 'path'
+import * as os from 'os'
+
+function logToFile(message: string) {
+  try {
+    // Match the actual app name: gramstr-app
+    const logPath = path.join(os.homedir(), 'Library', 'Application Support', 'gramstr-app', 'installer.log')
+    const timestamp = new Date().toISOString()
+    const logMessage = `[${timestamp}] [DOWNLOAD-API] ${message}\n`
+    fs.appendFileSync(logPath, logMessage)
+  } catch (e) {
+    console.error('Failed to write to log file:', e)
+  }
+}
 
 export async function POST(request: NextRequest) {
+  logToFile('=== DOWNLOAD API START ===')
+  logToFile(`Environment: ${process.env.NODE_ENV}`)
+  logToFile(`PYTHON_PORT: ${process.env.PYTHON_PORT}`)
+  logToFile(`NEXT_PUBLIC_PYTHON_PORT: ${process.env.NEXT_PUBLIC_PYTHON_PORT}`)
+  logToFile(`NEXT_PUBLIC_API_URL: ${process.env.NEXT_PUBLIC_API_URL}`)
+  
+  console.log('=== DOWNLOAD API START ===')
+  console.log('Timestamp:', new Date().toISOString())
+  console.log('Environment:', process.env.NODE_ENV)
+  console.log('PYTHON_PORT env:', process.env.PYTHON_PORT)
+  console.log('NEXT_PUBLIC_PYTHON_PORT env:', process.env.NEXT_PUBLIC_PYTHON_PORT)
+  console.log('NEXT_PUBLIC_API_URL env:', process.env.NEXT_PUBLIC_API_URL)
+  
   try {
     console.log('🚨 MAIN DOWNLOAD ROUTE CALLED')
     // Get user ID from NOSTR pubkey or visitor cookie
@@ -24,9 +53,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid Instagram URL" }, { status: 400 })
     }
 
-    // Call Python backend
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
-    const pythonResponse = await fetch(`${backendUrl}/download`, {
+    // Call Python backend with dynamic URL
+    const backendUrl = getBackendUrlSync()
+    const fullUrl = `${backendUrl}/download`
+    
+    logToFile(`Backend URL resolved to: ${backendUrl}`)
+    logToFile(`Full download URL: ${fullUrl}`)
+    logToFile(`Request payload: ${JSON.stringify({ url, user_id: userId })}`)
+    
+    console.log("Backend URL resolved to:", backendUrl)
+    console.log("Full download URL:", fullUrl)
+    console.log("Request payload:", { url, user_id: userId })
+    
+    const pythonResponse = await fetch(fullUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -37,14 +76,34 @@ export async function POST(request: NextRequest) {
       }),
     })
 
+    logToFile(`Python response status: ${pythonResponse.status}`)
+    logToFile(`Python response ok: ${pythonResponse.ok}`)
+    
+    console.log("Python response status:", pythonResponse.status)
+    console.log("Python response ok:", pythonResponse.ok)
+    
     if (!pythonResponse.ok) {
-      const error = await pythonResponse.json()
-      console.error("Python backend error:", {
-        status: pythonResponse.status,
-        error: error,
-        url: url,
-        backendUrl: backendUrl
-      })
+      const errorText = await pythonResponse.text()
+      let error
+      try {
+        error = JSON.parse(errorText)
+      } catch {
+        error = { detail: errorText }
+      }
+      
+      logToFile(`=== PYTHON BACKEND ERROR ===`)
+      logToFile(`Status: ${pythonResponse.status}`)
+      logToFile(`Error response: ${JSON.stringify(error)}`)
+      logToFile(`Request URL: ${url}`)
+      logToFile(`Backend URL: ${backendUrl}`)
+      logToFile(`User ID: ${userId}`)
+      
+      console.error("=== PYTHON BACKEND ERROR ===")
+      console.error("Status:", pythonResponse.status)
+      console.error("Error response:", error)
+      console.error("Request URL:", url)
+      console.error("Backend URL:", backendUrl)
+      console.error("User ID:", userId)
       // Forward the original status code from Python backend (especially 401 for session expiration)
       return NextResponse.json(
         { 
@@ -209,9 +268,23 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error("Download error:", error)
+    logToFile("=== DOWNLOAD API EXCEPTION ===")
+    logToFile(`Error type: ${typeof error}`)
+    logToFile(`Error: ${String(error)}`)
+    if (error instanceof Error) {
+      logToFile(`Error message: ${error.message}`)
+      logToFile(`Error stack: ${error.stack}`)
+    }
+    
+    console.error("=== DOWNLOAD API EXCEPTION ===")
+    console.error("Error type:", typeof error)
+    console.error("Error:", error)
+    if (error instanceof Error) {
+      console.error("Error message:", error.message)
+      console.error("Error stack:", error.stack)
+    }
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     )
   }

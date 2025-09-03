@@ -4,6 +4,7 @@ import { downloadedContent, crossPostHistory } from "@/db/schema"
 import { eq } from "drizzle-orm"
 import { NostrService, nostrKeysFromNsec, createNostrKeys } from "@/lib/nostr"
 import { getUserId } from "@/lib/visitor-id"
+import { getBackendUrlSync } from "@/lib/get-backend-url"
 
 export async function POST(request: NextRequest) {
   try {
@@ -156,7 +157,7 @@ export async function POST(request: NextRequest) {
             publicUrls.push(file)
           } else {
             // Just a filename, need to fetch from backend and upload
-            const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+            const backendUrl = getBackendUrlSync()
             const sourceUrl = `${backendUrl}/media/${userId}/${encodeURIComponent(file)}`
             console.log(`Fetching from backend and uploading: ${sourceUrl}`)
             

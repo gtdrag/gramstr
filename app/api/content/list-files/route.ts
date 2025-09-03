@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
+import { getBackendUrlSync } from "@/lib/get-backend-url"
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,7 +11,7 @@ export async function GET(request: NextRequest) {
     }
 
     // For production testing - fetch directly from backend filesystem
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+    const backendUrl = getBackendUrlSync()
     
     try {
       // Call a backend endpoint to list user files
