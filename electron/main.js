@@ -666,14 +666,7 @@ ipcMain.handle('install-components', async (event) => {
       fs.mkdirSync(pythonBackendPath, { recursive: true });
     }
     
-    // Send progress updates
-    event.sender.send('install-progress', {
-      progress: 30,
-      message: 'Downloading Python backend...',
-      component: 'python-backend'
-    });
-    
-    // Download and extract Python backend
+    // Download and extract components
     const https = require('https');
     const { exec } = require('child_process');
     const { promisify } = require('util');

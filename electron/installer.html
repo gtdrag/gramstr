@@ -320,16 +320,24 @@
       
       // Update component list
       if (data.component) {
-        const item = document.querySelector(`[data-component="${data.component}"]`);
-        if (item) {
-          item.classList.add('active');
-          if (data.progress > 0) {
-            const prevItems = Array.from(document.querySelectorAll('.component-item'));
-            const index = prevItems.indexOf(item);
-            prevItems.slice(0, index).forEach(prev => {
-              prev.classList.add('completed');
-              prev.querySelector('.component-icon').classList.add('completed');
-            });
+        const allItems = Array.from(document.querySelectorAll('.component-item'));
+        const currentItem = document.querySelector(`[data-component="${data.component}"]`);
+        
+        if (currentItem) {
+          const currentIndex = allItems.indexOf(currentItem);
+          
+          // Mark current item as active
+          currentItem.classList.add('active');
+          
+          // Only mark previous items as completed if we've moved to a new component
+          // (not just started the first one)
+          if (currentIndex > 0 && data.progress > 0) {
+            // Mark only the immediately previous item as completed when we start a new one
+            const prevItem = allItems[currentIndex - 1];
+            if (prevItem && !prevItem.classList.contains('completed')) {
+              prevItem.classList.add('completed');
+              prevItem.querySelector('.component-icon').classList.add('completed');
+            }
           }
         }
       }
