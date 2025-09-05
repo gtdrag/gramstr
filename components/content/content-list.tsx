@@ -137,7 +137,7 @@ export function ContentList({ refreshTrigger, isNostrConnected = false }: Conten
         }
         
         // Create and sign the event locally
-        let noteContent = contentItem.caption || 'Shared from ⚡gramstr'
+        let noteContent = contentItem.caption || 'Shared from [⚡gramstr](https://gramstr.com)'
         
         // Add carousel URLs if this is a carousel post
         if (contentItem.isCarousel && (contentItem.supabaseCarouselUrls || contentItem.carouselFiles)) {

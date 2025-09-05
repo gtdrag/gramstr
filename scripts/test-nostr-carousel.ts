@@ -39,7 +39,7 @@ async function testNostrCarousel() {
     }
     
     // Build the NOSTR note content
-    let noteContent = mockCarouselData.caption || 'Shared from ⚡gramstr'
+    let noteContent = mockCarouselData.caption || 'Shared from [⚡gramstr](https://gramstr.com)'
     if (publicUrls.length > 0) {
       noteContent = `${noteContent}\n\n${publicUrls.join('\n')}`
     }

@@ -212,7 +212,7 @@ export class NostrService {
       const publicVideoUrl = await this.uploadVideoFromUrl(videoUrl, filename)
       
       // Create note content WITHOUT any Instagram link
-      const noteContent = caption || 'Shared via ⚡gramstr'
+      const noteContent = caption || 'Shared via [⚡gramstr](https://gramstr.com)'
       
       // Publish the note WITH the publicly accessible video URL
       const noteId = await this.publishNote(noteContent, publicVideoUrl)

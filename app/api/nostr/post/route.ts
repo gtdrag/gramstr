@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
     await nostrService.connect()
 
     // Handle carousel posts with multiple files
-    let noteContent = contentItem.caption || 'Shared from ⚡gramstr'
+    let noteContent = contentItem.caption || 'Shared from [⚡gramstr](https://gramstr.com)'
     
     // Add privacy-friendly source reference if requested
     if (includeSource && contentItem.originalUrl) {
@@ -246,7 +246,7 @@ export async function POST(request: NextRequest) {
       const noteId = await nostrService.publishInstagramVideo(
         publicUrl,
         filename,
-        contentItem.caption || 'Shared from ⚡gramstr',
+        contentItem.caption || 'Shared from [⚡gramstr](https://gramstr.com)',
         '' // No longer passing Instagram URL
       )
 
