@@ -325,10 +325,13 @@ async function startNextServer(callback) {
           }
         });
       } else {
-        // Add hardcoded env vars for production
-        envVars.DATABASE_URL = 'postgresql://postgres:W5FKrYBa!7caR62@db.jrhyqcugjnddbbmbplbk.supabase.co:5432/postgres';
-        envVars.NEXT_PUBLIC_SUPABASE_URL = 'https://jrhyqcugjnddbbmbplbk.supabase.co';
-        envVars.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInT5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpyaHlxY3VnanRkZGJibWJwbGJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5ODQxNTUsImV4cCI6MjA1MDU2MDE1NX0.lhsOAuFFOiN0o9-S1HEwJwCtWBvlQ-Lzj7R2qlGC1C8';
+        // SECURITY: Credentials should NEVER be hardcoded in source code
+        // In production, load from:
+        // 1. Environment variables (.env.production.local)
+        // 2. OS Keychain (macOS Keychain, Windows Credential Manager)
+        // 3. Encrypted secure storage
+        console.warn('⚠️ No .env.local found - using development defaults');
+        console.warn('For production, configure secure credential storage');
       }
     } catch (err) {
       console.error('Error reading .env.local:', err);

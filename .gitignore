@@ -57,3 +57,23 @@ backend/instagram_cookies.txt
 backend/session_status.json
 gramstr-next-debug.log
 logs/
+
+# Security - NEVER commit these
+.env.production.local
+.env.local
+*.key
+*.nsec
+*.enc
+nostr.secure
+nostr.encrypted
+session_cookies.json
+session_status.json
+instagram_cookies.txt
+
+# Backup files
+*.backup
+*.bak
+
+# OS Keychain/Credential files
+*.keychain
+*.keystore
