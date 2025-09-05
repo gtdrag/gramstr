@@ -133,30 +133,73 @@ export async function POST(request: NextRequest) {
     let supabaseCarouselUrls = null
     
     if (result.metadata.file_path) {
-      // Removed delay - was causing issues
+      // Add small delay to prevent race conditions in bulk downloads
+      if (result.metadata.is_video) {
+        console.log('⏳ VIDEO: Adding 2s delay before processing video to prevent race conditions')
+        await new Promise(resolve => setTimeout(resolve, 2000))
+      }
       
       // Fetch the actual file from Python backend
+      console.log(`📥 Fetching ${result.metadata.is_video ? 'VIDEO' : 'IMAGE'}: ${result.metadata.file_path}`)
       const fileResponse = await fetch(`${backendUrl}/media/${userId}/${encodeURIComponent(result.metadata.file_path)}`)
       if (fileResponse.ok) {
         const fileBlob = await fileResponse.blob()
         const mimeType = fileResponse.headers.get('content-type') || undefined
+        const fileSizeMB = fileBlob.size / (1024 * 1024)
+        
+        console.log(`📊 File details:`)
+        console.log(`  - Type: ${result.metadata.is_video ? 'VIDEO' : 'IMAGE'}`)
+        console.log(`  - Size: ${fileSizeMB.toFixed(2)} MB`)
+        console.log(`  - MIME: ${mimeType}`)
+        
+        // Warn if video is large
+        if (result.metadata.is_video && fileSizeMB > 50) {
+          console.warn(`⚠️ VIDEO: Large video file (${fileSizeMB.toFixed(2)} MB) may fail to upload to Supabase`)
+        }
+        
         try {
+          console.log(`☁️ Starting Supabase upload for: ${result.metadata.file_path}`)
           supabaseFileUrl = await uploadToSupabase(fileBlob, result.metadata.file_path, userId, mimeType)
+          
+          if (supabaseFileUrl) {
+            console.log(`✅ Upload successful: ${supabaseFileUrl}`)
+          } else {
+            console.error(`❌ Upload failed: uploadToSupabase returned null`)
+            if (result.metadata.is_video) {
+              console.error(`❌ VIDEO UPLOAD FAILED - Video will not be available for Nostr posting`)
+              console.error(`  - Consider checking Supabase storage limits or increasing timeout`)
+            }
+          }
         } catch (uploadError) {
+          console.error(`💥 Upload exception:`, uploadError)
+          if (uploadError instanceof Error) {
+            console.error(`  - Error message: ${uploadError.message}`)
+            console.error(`  - Error stack: ${uploadError.stack}`)
+          }
           supabaseFileUrl = null
         }
       } else {
-        console.error(`❌ IMAGE FETCH: Failed to fetch ${result.metadata.file_path} - status: ${fileResponse.status}`)
+        console.error(`❌ FETCH FAILED: ${result.metadata.file_path} - status: ${fileResponse.status}`)
       }
     }
     
     if (result.metadata.thumbnail_path) {
       // Fetch and upload thumbnail
+      console.log(`📸 Fetching thumbnail: ${result.metadata.thumbnail_path}`)
       const thumbResponse = await fetch(`${backendUrl}/media/${userId}/${encodeURIComponent(result.metadata.thumbnail_path)}`)
       if (thumbResponse.ok) {
         const thumbBlob = await thumbResponse.blob()
         const mimeType = thumbResponse.headers.get('content-type') || undefined
-        supabaseThumbnailUrl = await uploadToSupabase(thumbBlob, result.metadata.thumbnail_path, userId, mimeType)
+        try {
+          supabaseThumbnailUrl = await uploadToSupabase(thumbBlob, result.metadata.thumbnail_path, userId, mimeType)
+          if (!supabaseThumbnailUrl) {
+            console.warn(`⚠️ Thumbnail upload returned null`)
+          }
+        } catch (error) {
+          console.error(`❌ Thumbnail upload failed:`, error)
+        }
+      } else {
+        console.error(`❌ Thumbnail fetch failed: status ${thumbResponse.status}`)
       }
     }
     
