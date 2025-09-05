@@ -22,3 +22,31 @@ contextBridge.exposeInMainWorld('electron', {
   // Get port configuration
   getPorts: () => ipcRenderer.invoke('get-ports')
 });
+
+// Expose secure NOSTR API to the renderer
+contextBridge.exposeInMainWorld('nostrSecure', {
+  // Store NOSTR key securely
+  storeKey: async (nsec) => {
+    return await ipcRenderer.invoke('nostr:store-key', nsec);
+  },
+  
+  // Get NOSTR key (for migration/backup only)
+  getKey: async () => {
+    return await ipcRenderer.invoke('nostr:get-key');
+  },
+  
+  // Sign an event (key never leaves main process)
+  signEvent: async (eventData) => {
+    return await ipcRenderer.invoke('nostr:sign-event', eventData);
+  },
+  
+  // Check if key exists
+  hasKey: async () => {
+    return await ipcRenderer.invoke('nostr:has-key');
+  },
+  
+  // Migrate key from environment to secure storage
+  migrateKey: async () => {
+    return await ipcRenderer.invoke('nostr:migrate-key');
+  }
+});

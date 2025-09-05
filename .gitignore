@@ -77,3 +77,9 @@ instagram_cookies.txt
 # OS Keychain/Credential files
 *.keychain
 *.keystore
+
+# Build temp files
+build-temp/
+
+# Upload scripts
+upload-*.sh

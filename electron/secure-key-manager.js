@@ -4,10 +4,19 @@
  */
 
 const { app, safeStorage } = require('electron');
-const keytar = require('keytar'); // Native OS keychain access
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+
+// Try to load keytar, but don't fail if it's not available
+let keytar;
+try {
+  keytar = require('keytar');
+  console.log('✅ Keytar module loaded - OS keychain available');
+} catch (error) {
+  console.log('⚠️ Keytar not available - will use Electron safeStorage instead');
+  keytar = null;
+}
 
 class SecureKeyManager {
   constructor() {
@@ -20,6 +29,9 @@ class SecureKeyManager {
    * Check if OS keychain is available
    */
   async isKeychainAvailable() {
+    if (!keytar) {
+      return false;
+    }
     try {
       // Test keychain access
       await keytar.setPassword('test-service', 'test-account', 'test');

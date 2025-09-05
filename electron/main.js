@@ -3,6 +3,7 @@ const path = require('path');
 const { spawn } = require('child_process');
 const fs = require('fs');
 const UninstallManager = require('./uninstall');
+const NostrSecureBridge = require('./nostr-secure-bridge');
 
 // Set up file logging
 const logPath = path.join(app.getPath('userData'), 'installer.log');
@@ -321,7 +322,17 @@ async function startNextServer(callback) {
         envContent.split('\n').forEach(line => {
           const [key, ...valueParts] = line.split('=');
           if (key && valueParts.length > 0) {
-            envVars[key.trim()] = valueParts.join('=').trim();
+            let value = valueParts.join('=').trim();
+            // Remove surrounding quotes if present
+            if ((value.startsWith('"') && value.endsWith('"')) || 
+                (value.startsWith("'") && value.endsWith("'"))) {
+              value = value.slice(1, -1);
+            }
+            envVars[key.trim()] = value;
+            // Log critical env vars (without full values for security)
+            if (key.trim() === 'DATABASE_URL') {
+              console.log(`✅ Loaded DATABASE_URL (${value.substring(0, 30)}...)`);
+            }
           }
         });
       } else {
@@ -1114,6 +1125,9 @@ ipcMain.handle('launch-app', async () => {
   return true;
 });
 
+// Initialize secure NOSTR bridge
+let nostrBridge;
+
 // App events
 app.whenReady().then(async () => {
   console.log('=== ELECTRON APP READY ===');
@@ -1121,6 +1135,10 @@ app.whenReady().then(async () => {
   console.log('Platform:', process.platform);
   console.log('App path:', app.getPath('exe'));
   console.log('Resources path:', process.resourcesPath);
+  
+  // Initialize NOSTR secure bridge
+  nostrBridge = new NostrSecureBridge();
+  console.log('✅ NOSTR secure bridge initialized');
   console.log('Is packaged:', app.isPackaged);
   console.log('User data path:', app.getPath('userData'));
   
