@@ -165,6 +165,8 @@ export class NostrService {
       
       // Add media URL to content if provided
       if (mediaUrl) {
+        // Media URLs from Supabase don't need preview prevention
+        // as they're direct media files that will be embedded
         noteContent += `\n\n${mediaUrl}`
       }
       
@@ -196,20 +198,20 @@ export class NostrService {
     }
   }
 
-  // Publish Instagram video to NOSTR
+  // Publish Instagram video to NOSTR (privacy-preserving, no tracking)
   async publishInstagramVideo(
     videoUrl: string, 
     filename: string, 
     caption: string,
-    originalUrl: string
+    originalUrl?: string // Optional, not used anymore
   ): Promise<string> {
     try {
-      console.log('🎬 Publishing Instagram video to NOSTR...')
+      console.log('🎬 Publishing video to NOSTR...')
       
       // Upload video to Supabase Storage for public access
       const publicVideoUrl = await this.uploadVideoFromUrl(videoUrl, filename)
       
-      // Create note content WITHOUT the Instagram link
+      // Create note content WITHOUT any Instagram link
       const noteContent = caption || 'Shared via ⚡gramstr'
       
       // Publish the note WITH the publicly accessible video URL
