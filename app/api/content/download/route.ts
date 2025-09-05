@@ -262,11 +262,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Save to database
+    // Clean the URL to remove tracking parameters before saving
+    const cleanedUrl = cleanUrl(url)
+    console.log(`🔒 Privacy: Cleaned URL from ${url} to ${cleanedUrl}`)
+    
     let contentRecord
     try {
-      // Clean the URL to remove tracking parameters before saving
-      const cleanedUrl = cleanUrl(url)
-      console.log(`🔒 Privacy: Cleaned URL from ${url} to ${cleanedUrl}`)
       
       contentRecord = await db.insert(downloadedContent).values({
         userId,
