@@ -5,6 +5,7 @@ import { downloadedContent } from "@/db/schema/content"
 import { eq } from "drizzle-orm"
 import { uploadToSupabase } from "@/lib/supabase-storage"
 import { getBackendUrlSync } from "@/lib/get-backend-url"
+import { cleanUrl } from "@/lib/url-privacy"
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,9 +30,10 @@ export async function POST(request: NextRequest) {
     const shortcode = shortcodeMatch ? shortcodeMatch[1] : url.split('/').filter(Boolean).pop() || 'unknown'
 
     // Create a placeholder record immediately
+    const cleanedUrl = cleanUrl(url)
     const [record] = await db.insert(downloadedContent).values({
       userId,
-      originalUrl: url,
+      originalUrl: cleanedUrl,  // Save cleaned URL without tracking
       shortcode,
       status: "processing",
       downloadedAt: new Date(),

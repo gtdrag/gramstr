@@ -43,9 +43,7 @@ async function testNostrCarousel() {
     if (publicUrls.length > 0) {
       noteContent = `${noteContent}\n\n${publicUrls.join('\n')}`
     }
-    if (mockCarouselData.originalUrl) {
-      noteContent = `${noteContent}\n\nOriginal: ${mockCarouselData.originalUrl}`
-    }
+    // Instagram URL removed - no longer adding to posts
     
     console.log('\n📝 Final NOSTR note content:')
     console.log('---')
