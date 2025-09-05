@@ -4,6 +4,7 @@ import { downloadedContent } from "@/db/schema"
 import { uploadToSupabase } from "@/lib/supabase-storage"
 import { getUserId } from "@/lib/visitor-id"
 import { getBackendUrlSync } from "@/lib/get-backend-url"
+import { cleanUrl } from "@/lib/url-privacy"
 import * as fs from 'fs'
 import * as path from 'path'
 import * as os from 'os'
@@ -263,9 +264,13 @@ export async function POST(request: NextRequest) {
     // Save to database
     let contentRecord
     try {
+      // Clean the URL to remove tracking parameters before saving
+      const cleanedUrl = cleanUrl(url)
+      console.log(`🔒 Privacy: Cleaned URL from ${url} to ${cleanedUrl}`)
+      
       contentRecord = await db.insert(downloadedContent).values({
         userId,
-        originalUrl: url,
+        originalUrl: cleanedUrl,
         shortcode: result.metadata.id,
         caption: result.metadata.caption,
         contentType: result.metadata.is_carousel ? "carousel" : (result.metadata.is_video ? "video" : "image"),
