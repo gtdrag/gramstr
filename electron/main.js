@@ -2,6 +2,7 @@ const { app, BrowserWindow, Menu, shell, ipcMain } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
 const fs = require('fs');
+const UninstallManager = require('./uninstall');
 
 // Set up file logging
 const logPath = path.join(app.getPath('userData'), 'installer.log');
@@ -701,6 +702,21 @@ function createMenu() {
           accelerator: 'CmdOrCtrl+Shift+B',
           click: () => {
             shell.openExternal('http://localhost:3000/gallery');
+          }
+        },
+        { type: 'separator' },
+        {
+          label: 'Reset Gramstr...',
+          click: async () => {
+            const uninstaller = new UninstallManager();
+            await uninstaller.showResetDialog();
+          }
+        },
+        {
+          label: 'Uninstall Gramstr Data...',
+          click: async () => {
+            const uninstaller = new UninstallManager();
+            await uninstaller.showUninstallDialog();
           }
         },
         { type: 'separator' },

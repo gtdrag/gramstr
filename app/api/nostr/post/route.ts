@@ -179,10 +179,7 @@ export async function POST(request: NextRequest) {
         console.log('Final note content with URLs:', noteContent)
       }
       
-      // Add original Instagram URL
-      if (contentItem.originalUrl) {
-        noteContent = `${noteContent}\n\nOriginal: ${contentItem.originalUrl}`
-      }
+      // Instagram URL removed - no longer adding originalUrl to posts
       
       // Simple text note with all media URLs
       const noteId = await nostrService.publishNote(noteContent)
