@@ -5,13 +5,14 @@ import { eq } from "drizzle-orm"
 import { NostrService, nostrKeysFromNsec, createNostrKeys } from "@/lib/nostr"
 import { getUserId } from "@/lib/visitor-id"
 import { getBackendUrlSync } from "@/lib/get-backend-url"
+import { processUrlForNostr, createPrivateReference } from "@/lib/url-privacy"
 
 export async function POST(request: NextRequest) {
   try {
     // Get user ID from NOSTR pubkey or visitor cookie
     const userId = await getUserId()
 
-    const { contentId, signedEvent } = await request.json()
+    const { contentId, signedEvent, includeSource = false } = await request.json()
 
     if (!contentId) {
       return NextResponse.json({ error: "Content ID is required" }, { status: 400 })
@@ -118,7 +119,13 @@ export async function POST(request: NextRequest) {
     await nostrService.connect()
 
     // Handle carousel posts with multiple files
-    let noteContent = contentItem.caption || 'Shared from ⚡gramstr'
+    let noteContent = contentItem.caption || 'Shared from [⚡gramstr](https://gramstr.com)'
+    
+    // Add privacy-friendly source reference if requested
+    if (includeSource && contentItem.originalUrl) {
+      const reference = createPrivateReference(contentItem.originalUrl)
+      noteContent = `${noteContent}\n\n📍 Source: ${reference}`
+    }
     
     console.log('Content item details:', {
       isCarousel: contentItem.isCarousel,
@@ -235,12 +242,12 @@ export async function POST(request: NextRequest) {
       // Extract filename for NOSTR post
       const filename = contentItem.filePath?.split('/').pop() || 'media'
       
-      // Publish to NOSTR with public URL
+      // Publish to NOSTR with public URL (without Instagram link)
       const noteId = await nostrService.publishInstagramVideo(
         publicUrl,
         filename,
-        contentItem.caption || 'Shared from ⚡gramstr',
-        contentItem.originalUrl
+        contentItem.caption || 'Shared from [⚡gramstr](https://gramstr.com)',
+        '' // No longer passing Instagram URL
       )
 
       // Record the cross-post

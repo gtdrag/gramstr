@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { cleanUrl } from "@/lib/url-privacy"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
@@ -137,7 +138,7 @@ export function ContentList({ refreshTrigger, isNostrConnected = false }: Conten
         }
         
         // Create and sign the event locally
-        let noteContent = contentItem.caption || 'Shared from ⚡gramstr'
+        let noteContent = contentItem.caption || 'Shared from [⚡gramstr](https://gramstr.com)'
         
         // Add carousel URLs if this is a carousel post
         if (contentItem.isCarousel && (contentItem.supabaseCarouselUrls || contentItem.carouselFiles)) {
@@ -154,8 +155,7 @@ export function ContentList({ refreshTrigger, isNostrConnected = false }: Conten
           noteContent = `${noteContent}\n\n${contentItem.supabaseFileUrl}`
         }
         
-        // Add original Instagram URL
-        noteContent = `${noteContent}\n\nOriginal: ${contentItem.originalUrl}`
+        // Instagram URL removed - no longer adding to posts
         
         const event = {
           kind: 1,
@@ -365,7 +365,7 @@ export function ContentList({ refreshTrigger, isNostrConnected = false }: Conten
               <div className="flex flex-col gap-2">
                 <Button
                   variant="ghost"
-                  onClick={() => window.open(item.originalUrl, '_blank')}
+                  onClick={() => window.open(cleanUrl(item.originalUrl), '_blank')}
                   className="text-gray-400 hover:text-gray-200 p-0 h-auto text-xs justify-start"
                 >
                   View Original →

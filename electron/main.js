@@ -3,6 +3,7 @@ const path = require('path');
 const { spawn } = require('child_process');
 const fs = require('fs');
 const UninstallManager = require('./uninstall');
+const NostrSecureBridge = require('./nostr-secure-bridge');
 
 // Set up file logging
 const logPath = path.join(app.getPath('userData'), 'installer.log');
@@ -321,14 +322,27 @@ async function startNextServer(callback) {
         envContent.split('\n').forEach(line => {
           const [key, ...valueParts] = line.split('=');
           if (key && valueParts.length > 0) {
-            envVars[key.trim()] = valueParts.join('=').trim();
+            let value = valueParts.join('=').trim();
+            // Remove surrounding quotes if present
+            if ((value.startsWith('"') && value.endsWith('"')) || 
+                (value.startsWith("'") && value.endsWith("'"))) {
+              value = value.slice(1, -1);
+            }
+            envVars[key.trim()] = value;
+            // Log critical env vars (without full values for security)
+            if (key.trim() === 'DATABASE_URL') {
+              console.log(`✅ Loaded DATABASE_URL (${value.substring(0, 30)}...)`);
+            }
           }
         });
       } else {
-        // Add hardcoded env vars for production
-        envVars.DATABASE_URL = 'postgresql://postgres:W5FKrYBa!7caR62@db.jrhyqcugjnddbbmbplbk.supabase.co:5432/postgres';
-        envVars.NEXT_PUBLIC_SUPABASE_URL = 'https://jrhyqcugjnddbbmbplbk.supabase.co';
-        envVars.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInT5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpyaHlxY3VnanRkZGJibWJwbGJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5ODQxNTUsImV4cCI6MjA1MDU2MDE1NX0.lhsOAuFFOiN0o9-S1HEwJwCtWBvlQ-Lzj7R2qlGC1C8';
+        // SECURITY: Credentials should NEVER be hardcoded in source code
+        // In production, load from:
+        // 1. Environment variables (.env.production.local)
+        // 2. OS Keychain (macOS Keychain, Windows Credential Manager)
+        // 3. Encrypted secure storage
+        console.warn('⚠️ No .env.local found - using development defaults');
+        console.warn('For production, configure secure credential storage');
       }
     } catch (err) {
       console.error('Error reading .env.local:', err);
@@ -1111,6 +1125,9 @@ ipcMain.handle('launch-app', async () => {
   return true;
 });
 
+// Initialize secure NOSTR bridge
+let nostrBridge;
+
 // App events
 app.whenReady().then(async () => {
   console.log('=== ELECTRON APP READY ===');
@@ -1118,6 +1135,10 @@ app.whenReady().then(async () => {
   console.log('Platform:', process.platform);
   console.log('App path:', app.getPath('exe'));
   console.log('Resources path:', process.resourcesPath);
+  
+  // Initialize NOSTR secure bridge
+  nostrBridge = new NostrSecureBridge();
+  console.log('✅ NOSTR secure bridge initialized');
   console.log('Is packaged:', app.isPackaged);
   console.log('User data path:', app.getPath('userData'));
   
